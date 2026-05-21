@@ -1,0 +1,14 @@
+{
+  "name": "nanofarm",
+  "version": "0.1.0",
+  "private": true,
+  "description": "tiny pixel-art idle game powered by claude code usage",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --filter @nanofarm/app dev",
+    "build": "pnpm --filter @nanofarm/app build",
+    "preview": "pnpm --filter @nanofarm/app preview",
+    "typecheck": "pnpm -r typecheck"
+  }
+}
