@@ -67,15 +67,61 @@ See [`hooks/INSTALL.md`](hooks/INSTALL.md). About thirty seconds: drop the scrip
 
 ---
 
-## Documentation
+## Project Structure
 
-- [ARCHITECTURE.md](ARCHITECTURE.md) - tech stack, monorepo layout, game loop, hook pipeline, save versioning
-- [HOW_IT_WORKS.md](HOW_IT_WORKS.md) - player-facing walkthrough of the game loop
-- [ROADMAP.md](ROADMAP.md) - phased plan from prototype to multi-planet prestige
-- [SECURITY.md](SECURITY.md) - posture, threat model, disclosure
-- [CONTRIBUTING.md](CONTRIBUTING.md) - house style, commit conventions, build commands
-- [COMMERCIAL.md](COMMERCIAL.md) - licensing and attribution
-- [CHANGELOG.md](CHANGELOG.md) - release notes
+```
+NanoFarm/
+  app/                          Standalone game (Vite + React + TS + PixiJS)
+    src/
+      App.tsx                   Game shell, HUD overlays, camera state
+      main.tsx                  Entry, mounts <App />
+      game/
+        state.ts                GameState shape, reducer, computeProduction
+        loop.ts                 raf tick: accrual, hook drain, event check
+        save.ts                 Serialize + migrate + persist
+        buildings.ts            Building defs, terrain bonuses, ROAD_COST
+        events.ts               Event-decision defs (empty in phase 1)
+        connectivity.ts         BFS from main through adjacent roads
+        tokens.ts               Claude Code hook drainer (FSA + IndexedDB)
+      pixi/
+        Stage.tsx               React host for the PixiJS canvas
+        scene.ts                Viewport-aware scene graph + culling
+        tiles.ts                Terrain + iso building draw functions
+      ui/
+        BuildPalette.tsx        Placeable picker (main, road, farm, mine)
+        MaterialsOverlay.tsx    Floating SVG pie chart over the canvas
+        EventDialog.tsx         Decision popup (unused in phase 1)
+      adapter/
+        storage.ts              Storage adapter (localStorage today)
+    index.html
+    vite.config.ts
+    package.json
+  shared/                       Cross-package types
+    src/
+      state.ts                  GameState, ResourceMap, BuildingId, MapState
+      save.ts                   SaveBlob + hydrateMissingFields
+      hook.ts                   HookLine jsonl record shape
+      messages.ts               Extension <-> webview message envelopes
+      map.ts                    Procgen value noise + terrain helpers
+      events.ts                 EventDef, EventChoice, EventTrigger
+    package.json
+  hooks/
+    post-tool-use.sh            Bash hook for zsh / wsl / git bash
+    post-tool-use.ps1           PowerShell hook for windows
+    INSTALL.md                  Wiring guide for ~/.claude/settings.json
+  assets/
+    banner.svg                  Repo banner
+  pnpm-workspace.yaml
+  package.json
+  README.md
+  ARCHITECTURE.md
+  HOW_IT_WORKS.md
+  ROADMAP.md
+  SECURITY.md
+  CONTRIBUTING.md
+  COMMERCIAL.md
+  CHANGELOG.md
+```
 
 ## License
 
