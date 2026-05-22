@@ -10,6 +10,8 @@ interface Props {
 }
 
 export function BuildPalette({ state, selected, onSelect }: Props) {
+  const mainPlaced = state.buildings.main.count > 0;
+
   return (
     <div className="build-palette">
       {(Object.keys(BUILDING_DEFS) as BuildingId[]).map((id) => {
@@ -21,12 +23,14 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
           !def.unlock || state.resources[def.unlock.resource] >= def.unlock.gte;
         const canAfford = state.resources.credits >= cost;
         const isSelected = selected === id;
+        // gate everything except `main` behind a placed main building.
+        const needsMain = id !== "main" && !mainPlaced;
         if (!unlocked) return null;
         return (
           <button
             key={id}
             onClick={() => onSelect(isSelected ? null : id)}
-            disabled={(atCap || !canAfford) && !isSelected}
+            disabled={(atCap || !canAfford || needsMain) && !isSelected}
             className={`build-button${isSelected ? " selected" : ""}`}
           >
             <span className="bb-label">{def.label}</span>
@@ -41,9 +45,15 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
       <RoadButton
         selected={selected === "road"}
         credits={state.resources.credits}
+        mainPlaced={mainPlaced}
         onSelect={(open) => onSelect(open ? "road" : null)}
       />
-      {selected && (
+      {!mainPlaced && (
+        <div className="bp-hint">
+          place your main building first. everything else unlocks once main exists.
+        </div>
+      )}
+      {mainPlaced && selected && (
         <div className="bp-hint">
           {selected === "main" && "click a green tile to place your main building."}
           {selected === "road" && "click tiles to lay roads. they branch out from main."}
@@ -58,17 +68,19 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
 function RoadButton({
   selected,
   credits,
+  mainPlaced,
   onSelect
 }: {
   selected: boolean;
   credits: number;
+  mainPlaced: boolean;
   onSelect: (open: boolean) => void;
 }) {
   const canAfford = credits >= ROAD_COST;
   return (
     <button
       onClick={() => onSelect(!selected)}
-      disabled={!canAfford && !selected}
+      disabled={(!canAfford || !mainPlaced) && !selected}
       className={`build-button${selected ? " selected" : ""}`}
     >
       <span className="bb-label">Road</span>

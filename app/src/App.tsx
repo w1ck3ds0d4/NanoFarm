@@ -219,13 +219,15 @@ export function App() {
             cam {Math.round(cameraX)},{Math.round(cameraY)} <span className="dim">|</span>{" "}
             zoom {zoom.toFixed(1)}x
           </div>
-          <button
-            type="button"
-            className={"build-fab" + (buildOpen ? " active" : "")}
-            onClick={() => setBuildOpen((o) => !o)}
-          >
-            {buildOpen ? "close" : "build"}
-          </button>
+          {!buildOpen && (
+            <button
+              type="button"
+              className="build-fab"
+              onClick={() => setBuildOpen(true)}
+            >
+              build
+            </button>
+          )}
         </div>
 
         {buildOpen && (
@@ -236,6 +238,14 @@ export function App() {
                 main {state.buildings.main.count}/1 | farms {state.buildings.farm.count} | mines{" "}
                 {state.buildings.mine.count} | roads {roadsCount}
               </span>
+              <button
+                type="button"
+                className="bp-close"
+                onClick={() => setBuildOpen(false)}
+                aria-label="close build panel"
+              >
+                x
+              </button>
             </header>
             <BuildPalette state={state} selected={selected} onSelect={onSelectPlaceable} />
             <div className="bp-stats">
