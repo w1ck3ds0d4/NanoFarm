@@ -225,6 +225,36 @@ button:disabled {
   background: #aadd33;
 }
 
+.placing-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(16, 20, 10, 0.96);
+  border: 1px solid #ccff44;
+  color: #ccff44;
+  padding: 3px 6px 3px 10px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: lowercase;
+  cursor: pointer;
+  margin-right: 6px;
+}
+
+.placing-pill:hover {
+  background: #1a2010;
+}
+
+.placing-pill .pp-x {
+  border-left: 1px solid #2a3015;
+  padding: 0 4px 0 6px;
+  color: #88aa33;
+  font-weight: 700;
+}
+
+.placing-pill:hover .pp-x {
+  color: #ccff44;
+}
+
 /* ============ BUILD PANEL ============ */
 .build-panel {
   position: absolute;

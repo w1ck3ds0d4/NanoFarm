@@ -114,12 +114,11 @@ export function App() {
 
   function onSelectPlaceable(p: Placeable | null) {
     setSelected(p);
-    // Keep the build panel open after selection so the highlighted row
-    // makes it obvious what's about to be placed. Previously the panel
-    // auto-closed and the player saw the placement-hint banner from
-    // BuildPalette pop up instead - which read as "a different menu
-    // opened". The panel has its own close button if the player wants
-    // the map full-screen.
+    // Close the build panel on selection so the player can actually
+    // see and click the map to place. The lingering placement-state
+    // is surfaced by the floating "placing: X" pill below, which
+    // doubles as a cancel button.
+    if (p !== null) setBuildOpen(false);
   }
 
   function onTileClick(tx: number, ty: number) {
@@ -230,6 +229,20 @@ export function App() {
             cam {Math.round(cameraX)},{Math.round(cameraY)} <span className="dim">|</span>{" "}
             zoom {zoom.toFixed(1)}x
           </div>
+          {selected !== null && !buildOpen && (
+            <button
+              type="button"
+              className="placing-pill"
+              onClick={() => setSelected(null)}
+              title="cancel placement"
+              aria-label={`cancel placing ${selected}`}
+            >
+              <span className="pp-label">
+                placing: {selected === "road" ? "road" : BUILDING_DEFS[selected].label.toLowerCase()}
+              </span>
+              <span className="pp-x">x</span>
+            </button>
+          )}
           {!buildOpen && (
             <button
               type="button"
