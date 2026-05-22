@@ -86,4 +86,4 @@ Coordinated disclosure is preferred. There is no bug bounty.
 
 ## License
 
-MIT. See [LICENSE](LICENSE) and [COMMERCIAL.md](COMMERCIAL.md).
+Dual-licensed under AGPL v3 + a commercial license. See [LICENSE](LICENSE) and [COMMERCIAL.md](COMMERCIAL.md).
