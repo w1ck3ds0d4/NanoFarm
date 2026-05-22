@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="968" height="180" viewBox="0 0 968 180" role="img" aria-label="NANOFARM">
+  <defs>
+    <clipPath id="clip"><rect width="968" height="180" rx="8"/></clipPath>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#10140a"/>
+      <stop offset="50%" stop-color="#1a200f"/>
+      <stop offset="100%" stop-color="#10140a"/>
+    </linearGradient>
+  </defs>
+  <g clip-path="url(#clip)">
+    <rect width="968" height="180" fill="url(#bg)"/>
+    <rect width="968" height="180" fill="none" stroke="#2a3015" stroke-width="2" rx="8"/>
+    <text x="484" y="95" text-anchor="middle" font-family="ui-monospace, 'JetBrains Mono', Consolas, monospace" font-size="56" font-weight="700" letter-spacing="3" fill="#ccff44">NANOFARM</text>
+    <text x="484" y="132" text-anchor="middle" font-family="ui-monospace, 'JetBrains Mono', Consolas, monospace" font-size="14" letter-spacing="1.5" fill="#888888">tiny idle game / browser or vs code webview tab</text>
+    <rect y="175" width="968" height="5" fill="#ccff44" opacity="0.7"/>
+  </g>
+</svg>
