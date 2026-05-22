@@ -114,6 +114,27 @@ export function reducer(state: GameState, action: Action): GameState {
       const key = `${action.x},${action.y}`;
       if (state.map.placed[key]) return state;
       if (state.map.roads[key]) return state;
+      // Roads must extend the existing network: each new road has to
+      // touch main, another road, or an already-placed building on a
+      // 4-cardinal neighbour. Without this rule the player could drop
+      // road tiles in random spots and the connectivity BFS (which
+      // starts at main and walks adjacent roads) would never reach
+      // them - they cost credits but provide no network. The user
+      // reported exactly this: "two roads that don't connect to each
+      // other". They now do, by construction.
+      const roadNeighbors: Array<[number, number]> = [
+        [action.x - 1, action.y],
+        [action.x + 1, action.y],
+        [action.x, action.y - 1],
+        [action.x, action.y + 1],
+      ];
+      const connectsToNetwork = roadNeighbors.some(([nx, ny]) => {
+        const nKey = `${nx},${ny}`;
+        if (state.map.roads[nKey]) return true;
+        if (state.map.placed[nKey]) return true; // main OR any building
+        return false;
+      });
+      if (!connectsToNetwork) return state;
       return {
         ...state,
         resources: { ...state.resources, credits: state.resources.credits - cost },
