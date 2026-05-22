@@ -134,8 +134,17 @@ export function Stage({
 
   useEffect(() => {
     doRender();
+    // Depend on `state.map` instead of the whole `state` object. The
+    // `tick` reducer returns `{ ...state, meta, resources }` every
+    // frame, so `state` gets a new reference at 60Hz while `state.map`
+    // keeps its identity until the user actually places or removes
+    // something. renderScene only reads `state.map.{width, height,
+    // placed, roads}`, so painting the scene whenever resources tick
+    // was pure waste. With this swap the Pixi scene repaints on user
+    // input (place / pan / zoom / hover / selectMode flip) instead of
+    // 60 times per second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, terrain, connected, cameraX, cameraY, zoom, selectMode]);
+  }, [state.map, terrain, connected, cameraX, cameraY, zoom, selectMode]);
 
   function localPos(e: React.MouseEvent<HTMLDivElement>): { sx: number; sy: number } {
     const rect = e.currentTarget.getBoundingClientRect();
