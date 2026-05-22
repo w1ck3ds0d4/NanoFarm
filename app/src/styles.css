@@ -1,0 +1,169 @@
+:root {
+  color-scheme: dark;
+  font-family: ui-monospace, "JetBrains Mono", Consolas, monospace;
+  background: #0a0e05;
+  color: #ccff44;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.app header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #2a3015;
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+.app h1 {
+  font-size: 24px;
+  margin: 0;
+  letter-spacing: 2px;
+}
+
+.app h2 {
+  font-size: 12px;
+  margin: 0 0 8px 0;
+  color: #88aa33;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.app main {
+  display: grid;
+  grid-template-columns: 1fr 220px;
+  gap: 16px;
+}
+
+.pixi-stage {
+  image-rendering: pixelated;
+  border: 1px solid #2a3015;
+}
+
+.panels {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.resource-panel,
+.build-palette {
+  background: #10140a;
+  border: 1px solid #2a3015;
+  padding: 12px;
+}
+
+.resources {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+button {
+  font: inherit;
+  background: #1a2010;
+  border: 1px solid #2a3015;
+  color: #ccff44;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #2a3015;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.harvest {
+  width: 100%;
+  padding: 8px;
+  font-weight: 700;
+}
+
+.meta {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #888;
+}
+
+.build-button {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.build-button .count {
+  color: #88aa33;
+}
+
+.build-button .cost {
+  color: #888;
+}
+
+.hook-status {
+  font-size: 12px;
+  color: #88aa33;
+}
+
+.hook-status button {
+  font-size: 11px;
+}
+
+.event-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.event-dialog {
+  background: #10140a;
+  border: 2px solid #ccff44;
+  padding: 20px;
+  max-width: 480px;
+}
+
+.event-dialog h2 {
+  color: #ccff44;
+  font-size: 16px;
+  margin: 0 0 12px 0;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.event-dialog p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #ddd;
+  margin: 0 0 16px 0;
+}
+
+.event-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
