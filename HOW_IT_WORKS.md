@@ -1,144 +1,116 @@
 # How It Works
 
-NanoFarm is a tiny pixel-art idle game. you grow a civilization in the corner of your editor. you click on things to get started, then mostly watch numbers tick up. occasionally an event popup asks you to make a choice. when you have enough of the late resource, you settle a new planet, reset your local progress, and keep a permanent multiplier.
+NanoFarm is a tiny pixel-art idle game where you grow a civilization on a 150x150 iso map. You drop a main building, chain roads out from it, place farms and mines adjacent to the road network, and watch resources tick up. Connected buildings produce; disconnected ones sit idle and dim. With Claude Code wired up, every tool call your coding session makes feeds bonus materials into the game.
 
-this doc describes the planned player experience. phase 1 is in progress; later layers (combat, multi-planet) are not yet playable.
+This doc describes the planned player experience. Phase 1 ships the core loop (procgen world, main + roads + connectivity, materials, HUD); later layers (combat, multi-planet, prestige) are pending.
 
-## what you do, in one paragraph
+## What you do, in one paragraph
 
-you start with a small patch of land and a small pile of credits. you click "harvest" a few times to get going, then spend credits on your first farm, which generates more credits over time. farms unlock mines, mines produce materials, materials unlock research, research unlocks bigger buildings. every so often an event pops up asking you to pick between two paths. eventually you build cities, then a nation, then go to space. settling a new planet resets your local civilization but you keep a permanent multiplier for the next run.
+You start with 10 credits and a procgen 150x150 map. Open the BUILD panel, pick "Main Building", click an open tile to place it. Pick "Road" and chain a few tiles out from main. Pick "Farm" and place one adjacent to a road or to main itself; it starts producing credits and potatoes immediately. Drag the map to scout for forest patches (boosts wood) and mine deposits (boosts iron). Place a mine once you have 100 credits. Repeat. Wire up the Claude Code hook if you want your coding to feed the city.
 
-while you do all of this, if you have claude code installed and the hook wired up, your tool calls feed extra materials into the game. the more you code, the faster the city grows.
+## Resources
 
-## resources
+Top-level tiers:
 
-planned tiers for phase 1 and early phase 2:
+- **Credits** - basic currency. Earned by farms. Spent on everything in the early game. Starts at 10 so you can place a first farm right away.
+- **Materials** - displayed as a single sum in the resource bar; click it to open a pie chart breakdown of the four building materials and food.
+  - **Wood** - from forest tiles adjacent to a farm.
+  - **Iron** - from mines, with a bonus for adjacent `mine_deposit` tiles.
+  - **Stone** - from mines, with a bonus for adjacent `mountain` tiles.
+  - **Water** - from water tiles adjacent to a farm.
+  - **Potatoes** - farms produce these to feed the population (population mechanic coming in a later phase). Adjacent water boosts the yield.
+- **Research** - gated tier. Produced by labs once research is unlocked (phase 2).
+- **AI tokens** - not a stored resource; every Claude Code tool call becomes +0.25 of each building material via the hook drainer.
 
-- **nano-credits**: the basic currency. earned by every building. spent on most things in the early game. starts at zero; first harvest click awards a small amount.
-- **materials**: mid-tier. produced by mines once you build one. also the resource granted by the claude code hook. used for bigger buildings and unit production.
-- **research**: gated tier. produced by labs once research is unlocked. spent on tech tree nodes that change rates, unlock new buildings, or open event chains.
+Later phases introduce **influence** (nation tier, earned by population growth and event outcomes) and **starseed** (prestige currency, earned by settling a new planet).
 
-later phases introduce two more:
+## Buildings
 
-- **influence**: nation-tier. earned by population growth and event outcomes. spent on diplomacy and military.
-- **starseed**: prestige currency. earned only by settling a new planet. spent on permanent multipliers that survive resets.
+Phase 1 buildings:
 
-## buildings
+- **Main Building** - the heart of your civilization. Free, max one per game. Required for connectivity. Visually distinct (taller, gold roof).
+- **Farm** - produces 1 credit + 0.5 potatoes per second baseline. +0.15 wood per adjacent forest tile, +0.15 water + 0.2 potatoes per adjacent water tile.
+- **Mine** - produces 0.25 iron + 0.25 stone per second baseline. +0.4 iron per adjacent `mine_deposit`, +0.4 stone per adjacent `mountain`. Unlocked once you have 50 credits.
+- **Road** - not a building; a flat paved tile that extends the connectivity network. 2 credits each. Place chains of them to reach distant ore and forest patches.
 
-each building owns a tier of resource. owning more of a building scales its output linearly; upgrades and tech nodes scale it multiplicatively.
+Phase 2 adds **lab** (research), **barracks** (military units for auto-resolve combat), and **market** (trade resources at fixed rates).
 
-phase 1 buildings:
+## The world map
 
-- **farm**: produces nano-credits per second. first building unlocked.
-- **mine**: produces materials. unlocks once you own n farms.
+Each new game gets a fresh 150x150 procgen map generated from a saved seed. Terrain types via value noise:
 
-phase 2 adds:
+- **Grass** - default buildable.
+- **Sand** - shoreline. Buildable.
+- **Water** - lakes, rivers, and sea. Not buildable. Boosts adjacent farm output.
+- **Forest** - dense clusters. Not buildable. Boosts adjacent farm output (wood).
+- **Mountain** - rocky highlands. Not buildable. Boosts adjacent mine output (stone).
+- **Mine deposit** - rare grass tiles with visible ore. Not buildable. Heavy boost to adjacent mine output (iron).
 
-- **lab**: produces research from materials. unlocks via the first major event choice.
-- **barracks**: produces military units, spent in auto-resolve combat.
-- **market**: trades one resource for another at a fixed rate.
+The viewport shows ~30 tiles wide of the map at default zoom. Drag the canvas to pan. Scroll the wheel to zoom from 0.6x (overview) up to 3.0x (single-tile detail). Buildings are sorted back-to-front by `x + y` so iso depth reads correctly.
 
-phase 3 adds nation-tier buildings (capital, monument), and phase 4 adds space-tier (spaceport, terraformer).
+## Roads and connectivity
 
-## the click loop
+The road system is the spine of the city. The rules:
 
-clicking the harvest button awards a small flat amount of nano-credits. early game, this is how you afford your first farm. later, clicks are a footnote; passive income from buildings dwarfs them.
+1. The main building must exist before any other building produces resources.
+2. A road tile is "reachable" if it is orthogonally adjacent to the main building, or to another reachable road tile.
+3. A farm or mine is "active" if it is orthogonally adjacent to the main building, or to a reachable road tile.
+4. Active buildings produce normally. Inactive buildings render at 45% opacity and produce zero.
 
-clicks are not throttled. you can mash if you want. the rate is balanced so that clicks alone can carry the very early game but stop being meaningful within a few minutes of playing.
+Connectivity is recomputed by BFS each tick. Placing a road that bridges two clusters reactivates all the buildings in the newly reachable subgraph instantly.
 
-## the idle loop
+## The Claude Code hook
 
-the game ticks every animation frame. between frames it counts how long passed and adds the right amount of each resource. you do not have to keep clicking. if you switch tabs the loop keeps going. if the browser throttles the tab, the loop accumulates the missed time on the next visible frame so you do not lose progress.
+If you install the hook (see [hooks/INSTALL.md](hooks/INSTALL.md)), every tool call your Claude Code session makes is recorded to a small file in your home directory. The game reads that file every second and converts new entries into bonus materials, split evenly across wood, iron, stone, and water.
 
-throttled background tabs are normal; everything is clamped so you never see a single tick larger than one second of accrued time.
+The bonus is **additive**. Without the hook, the game plays as a regular idle clicker; clicks and idle buildings carry you. With the hook installed and an active coding session, your material accrual rate goes up noticeably. Heavy sessions (lots of edits, reads, bash commands) can outpace passive income by several multiples.
 
-## the claude code hook
+The hook does not read your code, your tool inputs, or your tool outputs. It only counts that a tool call happened.
 
-if you install the hook (see [hooks/INSTALL.md](hooks/INSTALL.md)), every tool call your claude code session makes is recorded to a small file. the game reads that file every second and converts the new entries into bonus materials.
+A small "+N materials from coding" floater appears in the corner each time the drainer awards a batch.
 
-the bonus is **additive**. without the hook, the game is a regular idle clicker; clicks and buildings carry you. with the hook installed and an active coding session, your material accrual rate goes up noticeably. heavy sessions (lots of edits, reads, bash commands) can outpace passive income by several multiples.
+## Offline progress
 
-the hook does not read your code, your tool inputs, or your tool outputs. it only counts that a tool call happened.
+Planned for phase 4. Today the game pauses when the tab is closed. Phase 4 will:
 
-a small "+N materials from coding" floater appears in the corner each time the drainer awards a batch, so you can see the loop working.
+- Write a wall-clock timestamp on every save.
+- On reopen, compute elapsed time and replay it against the last-saved rates, capped at 8 hours.
+- Show a "while you were away" banner with the totals.
+- Pick up queued Claude Code tool calls from the hook file on the next drainer pass.
 
-## the event system
+## The standalone web app
 
-every so often, an event popup appears. it gives you a paragraph of context and two or three choices. picking one applies an immediate effect and may set up later events.
+Run from a built `dist/index.html` or via the Vite dev server. The save lives in `localStorage["nanofarm.save"]`. Clearing browser data wipes the save. Export / import buttons (planned) download and restore the save as JSON.
 
-events fire from three kinds of triggers:
+The Claude Code hook writes to `~/.nanofarm/tokens.jsonl` (or `%USERPROFILE%\.nanofarm\tokens.jsonl` on Windows). The browser uses the File System Access API to read it; you grant permission once via a file picker and the browser remembers the choice across sessions.
 
-- **milestone**: "your city reached 1,000 population." fires once the threshold is crossed.
-- **time**: "ten minutes since you started this run." simple wall-clock.
-- **ai-tokens**: "you have earned 100k materials from coding." encourages real-world progress.
+## The VS Code extension
 
-most events are one-shot dilemmas with a small immediate effect: build a school, build a hospital, both nudge stats in different directions and that is the end of it. a small set of pivotal choices open chains. for example, "cure cancer" might pull in three follow-up events over the next twenty minutes; "weaponize the research" pulls in a different three.
+Phase 3. The extension contributes a single command:
 
-content is hand-authored. there is no procedural event generator.
+- `NanoFarm: Open Panel` - opens a `WebviewPanel` and loads the game.
 
-## combat
+The panel can be dragged to a side group so it stays open next to your editor. Closing the panel does not delete your save; the save lives in `extensionContext.workspaceState`. A per-workspace save means each project has its own farm; a settings toggle lets you switch to `globalState` so one farm follows you across workspaces.
 
-combat is auto-resolved. you do not control units on a battlefield. when a war happens (typically from an event), the game compares your military stat to the opponent's, applies a small luck factor, and reports an outcome: win or lose, plus the resource transfer.
+The hook integration is the same in both surfaces. The file path does not change.
 
-scale of "war" depends on the layer:
+## The long loop
 
-- **phase 2**: skirmishes between cities you own and neighboring city-states.
-- **phase 3**: full nation-scale conflicts.
-- **phase 4**: space-scale conflicts over planet resources.
+NanoFarm grows in layers. Each layer unlocks once the one below it is established:
 
-if you do not want combat, you can ignore the military path entirely. nothing forces you to build a barracks. some event chains are easier with a strong military; others are easier without one.
+1. **City** (phase 1, shipped) - one tile grid, main building, roads, farms + mines, terrain bonuses.
+2. **Nation** (phase 2-3) - multiple cities, neighbors, diplomacy, auto-resolve skirmishes, research tree, broader event chains.
+3. **Planet** (late phase 3) - one planet fully built out, weather, terraforming, late-game events.
+4. **Multi-planet** (phase 4) - space discovery, then colonization. **Settling a new planet is the prestige reset.** You spend the current planet's progress to earn starseed currency, then start over on a new planet with a permanent multiplier.
 
-## offline progress
+The prestige loop is the long-term motivator. Each run pushes a little further in less time.
 
-when you close the tab or close vs code, the game writes the current state and the wall-clock timestamp to storage. when you reopen it, NanoFarm reads the timestamp, computes how long was elapsed, and awards the resources you would have earned during that gap.
+## What NanoFarm does not do
 
-planned rules:
-
-- offline progress is capped (initial cap: 8 hours of real time; raisable via a prestige upgrade).
-- offline accrual uses the rate at the moment the save was written, not the current rate. you do not retroactively benefit from buildings bought after closing.
-- a banner on reopen tells you "while you were away you earned X credits, Y materials over Z minutes".
-
-claude code tool calls that happened while the game was closed still count. the next drainer pass picks up the queued lines from the hook file.
-
-## the long loop: city, nation, planet, prestige
-
-NanoFarm grows in layers. each layer unlocks once the one below it is established.
-
-1. **city**: phase 1. one tile grid, a handful of building types, click + idle + hook + events.
-2. **nation**: phase 2 and 3. multiple cities, neighbors, diplomacy, auto-resolve skirmishes, the research tree, broader event chains.
-3. **planet**: late phase 3. one planet, fully built out. weather, terraforming, late-game events.
-4. **multi-planet**: phase 4. space discovery, then colonization. **settling a new planet is the prestige reset.** you spend the current planet's progress to earn starseed currency, then start over on a new planet with a permanent multiplier.
-
-the prestige loop is the long-term motivator. the next planet starts faster because of the carried multipliers. each run pushes a little further in less time.
-
-## the standalone web app
-
-run from a built `dist/index.html` or via the vite dev server. the save lives in `localStorage["nanofarm.save"]`. clearing browser data wipes the save. there is an export button that downloads the save as json, and an import button that restores one.
-
-the claude code hook on this surface writes to `~/.nanofarm/tokens.jsonl` (or `%USERPROFILE%\.nanofarm\tokens.jsonl` on windows).
-
-## the vs code extension
-
-planned for phase 3. the extension contributes a single command:
-
-- `NanoFarm: Open Panel`. opens a `WebviewPanel` and loads the game.
-
-the panel can be dragged to a side group so it stays open next to your editor. closing the panel does not delete your save; the save lives in `extensionContext.workspaceState`. a per-workspace save means each project has its own farm; a settings toggle lets you switch to `globalState` so one farm follows you across workspaces.
-
-the hook integration is the same in both surfaces. the file path does not change. the extension panel reads the same `~/.nanofarm/tokens.jsonl`.
-
-## what your save looks like
-
-a single json blob, versioned. structure described in [ARCHITECTURE.md](ARCHITECTURE.md). saves from older versions auto-migrate forward. you can copy the export json from the browser, paste it into the extension, and pick up where you left off (or vice versa).
-
-unread hook lines stay in `~/.nanofarm/tokens.jsonl` and are not part of the save export. moving to a new machine means you start fresh on the hook history, but your in-game progress comes with you.
-
-## what NanoFarm does not do
-
-- no leaderboards, no online ranking, no friends list.
-- no microtransactions, no ads, no cosmetic shop.
-- no cloud sync. the export / import json is the only cross-device path.
-- no telemetry. NanoFarm makes no network calls at runtime.
-- no anti-cheat. it is your save; do whatever you want with it.
-- no tactical combat. wars are stat comparisons, not battle maps.
-- no read of your code or tool i/o by the hook. only counts.
+- No leaderboards, no online ranking, no friends list.
+- No microtransactions, no ads, no cosmetic shop.
+- No cloud sync. The export / import JSON is the only cross-device path.
+- No telemetry. NanoFarm makes no network calls at runtime.
+- No anti-cheat. It is your save; do whatever you want with it.
+- No tactical combat. Wars are stat comparisons, not battle maps.
+- No reading of your code or tool I/O by the hook. Only counts.
