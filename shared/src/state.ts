@@ -96,7 +96,12 @@ export function makeInitialState(now: number, seed?: number): GameState {
       totalAiTokensEarned: 0,
       population: 0
     },
-    resources: { credits: 10, research: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 },
+    // Starting credits cover: main (free) + first farm (10) + a few roads
+    // (2 each) so the player can route the farm to main if they didn't
+    // land adjacent. With the previous 10 credits, dropping a farm one
+    // tile off main left the player with 0 credits and a disconnected
+    // producer - soft-locked.
+    resources: { credits: 20, research: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 },
     buildings: {
       main: { id: "main", count: 0 },
       farm: { id: "farm", count: 0 },

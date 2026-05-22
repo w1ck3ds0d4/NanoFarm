@@ -265,7 +265,27 @@ button:disabled {
   border-top: 1px solid #2a3015;
   font-size: 9px;
   color: #555;
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.bp-reset {
+  background: transparent;
+  border: 1px solid #2a3015;
+  color: #88aa33;
+  padding: 1px 8px;
+  font-size: 9px;
+  text-transform: lowercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+}
+
+.bp-reset:hover {
+  background: #1a2010;
+  color: #ccff44;
+  border-color: #ccff44;
 }
 
 .bp-close {

@@ -114,9 +114,12 @@ export function App() {
 
   function onSelectPlaceable(p: Placeable | null) {
     setSelected(p);
-    // closing the build panel as soon as a placeable is picked frees the map
-    // for clicking. the player can reopen the panel to switch selection.
-    if (p !== null) setBuildOpen(false);
+    // Keep the build panel open after selection so the highlighted row
+    // makes it obvious what's about to be placed. Previously the panel
+    // auto-closed and the player saw the placement-hint banner from
+    // BuildPalette pop up instead - which read as "a different menu
+    // opened". The panel has its own close button if the player wants
+    // the map full-screen.
   }
 
   function onTileClick(tx: number, ty: number) {
@@ -257,7 +260,20 @@ export function App() {
             </header>
             <BuildPalette state={state} selected={selected} onSelect={onSelectPlaceable} />
             <div className="bp-stats">
-              ai materials this run: {Math.floor(state.meta.totalAiTokensEarned)}
+              <span>ai materials this run: {Math.floor(state.meta.totalAiTokensEarned)}</span>
+              <button
+                type="button"
+                className="bp-reset"
+                onClick={() => {
+                  if (window.confirm("start a new run? this wipes the current map and resources.")) {
+                    dispatch({ type: "reset", now: Date.now() });
+                    setSelected(null);
+                    setBuildOpen(false);
+                  }
+                }}
+              >
+                new run
+              </button>
             </div>
           </div>
         )}
