@@ -11,7 +11,13 @@ import { BUILDING_DEFS, ROAD_COST, costFor, productionFor } from "./buildings";
 
 export type Action =
   | { type: "hydrate"; state: GameState }
-  | { type: "tick"; now: number; produced: ResourceMap }
+  | {
+      type: "tick";
+      now: number;
+      produced: ResourceMap;
+      populationDelta: number;
+      foodConsumed: number;
+    }
   | { type: "place-building"; building: BuildingId; x: number; y: number }
   | { type: "place-road"; x: number; y: number }
   | { type: "queue-event"; eventId: string }
@@ -33,9 +39,21 @@ export function reducer(state: GameState, action: Action): GameState {
     }
     case "tick": {
       const r = state.resources;
+      const nextPotatoes = Math.max(
+        0,
+        r.potatoes + action.produced.potatoes - action.foodConsumed
+      );
+      const nextPopulation = Math.max(
+        0,
+        state.meta.population + action.populationDelta
+      );
       return {
         ...state,
-        meta: { ...state.meta, lastTickAt: action.now },
+        meta: {
+          ...state.meta,
+          lastTickAt: action.now,
+          population: nextPopulation
+        },
         resources: {
           credits: r.credits + action.produced.credits,
           research: r.research + action.produced.research,
@@ -43,7 +61,7 @@ export function reducer(state: GameState, action: Action): GameState {
           iron: r.iron + action.produced.iron,
           stone: r.stone + action.produced.stone,
           water: r.water + action.produced.water,
-          potatoes: r.potatoes + action.produced.potatoes
+          potatoes: nextPotatoes
         }
       };
     }

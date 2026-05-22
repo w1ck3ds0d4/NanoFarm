@@ -33,9 +33,9 @@ export function totalMaterials(r: ResourceMap): number {
   return r.wood + r.iron + r.stone + r.water + r.potatoes;
 }
 
-export type BuildingId = "main" | "farm" | "mine";
+export type BuildingId = "main" | "farm" | "mine" | "house";
 
-export const BUILDING_IDS: readonly BuildingId[] = ["main", "farm", "mine"] as const;
+export const BUILDING_IDS: readonly BuildingId[] = ["main", "farm", "mine", "house"] as const;
 
 export interface BuildingState {
   id: BuildingId;
@@ -61,6 +61,8 @@ export interface MetaState {
   lastTickAt: number;
   hookDrainedAt: number;
   totalAiTokensEarned: number;
+  /** Current population. Fractional internally; displayed floored. */
+  population: number;
 }
 
 export interface MapState {
@@ -91,13 +93,15 @@ export function makeInitialState(now: number, seed?: number): GameState {
       startedAt: now,
       lastTickAt: now,
       hookDrainedAt: 0,
-      totalAiTokensEarned: 0
+      totalAiTokensEarned: 0,
+      population: 0
     },
     resources: { credits: 10, research: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 },
     buildings: {
       main: { id: "main", count: 0 },
       farm: { id: "farm", count: 0 },
-      mine: { id: "mine", count: 0 }
+      mine: { id: "mine", count: 0 },
+      house: { id: "house", count: 0 }
     },
     events: {
       firedIds: [],

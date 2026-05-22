@@ -57,7 +57,7 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
         <div className="bp-hint">
           {selected === "main" && "click a green tile to place your main building."}
           {selected === "road" && "click tiles to lay roads. they branch out from main."}
-          {(selected === "farm" || selected === "mine") &&
+          {(selected === "farm" || selected === "mine" || selected === "house") &&
             "click a green tile adjacent to a road or main building."}
         </div>
       )}

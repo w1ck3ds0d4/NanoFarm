@@ -40,6 +40,18 @@ export function hydrateMissingFields(state: GameState): GameState {
       }
     };
   }
+  if (!next.buildings.house) {
+    next = {
+      ...next,
+      buildings: {
+        ...next.buildings,
+        house: { id: "house", count: 0 }
+      }
+    };
+  }
+  if (typeof next.meta.population !== "number") {
+    next = { ...next, meta: { ...next.meta, population: 0 } };
+  }
   // old `materials: number` shape: split equally into wood/iron/stone/water
   const r = next.resources as Record<string, number>;
   if (typeof r.materials === "number" && (r.wood === undefined || r.iron === undefined)) {

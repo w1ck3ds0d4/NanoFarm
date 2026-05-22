@@ -13,6 +13,7 @@ import { SaveLoop, loadOrInit } from "./game/save";
 import { createStorageAdapter } from "./adapter/storage";
 import { createDrainer, type TokenDrainer } from "./game/tokens";
 import { computeConnected } from "./game/connectivity";
+import { populationCapacity } from "./game/population";
 import { BUILDING_DEFS } from "./game/buildings";
 import { Stage } from "./pixi/Stage";
 import { BuildPalette, type Placeable } from "./ui/BuildPalette";
@@ -53,6 +54,7 @@ export function App() {
   terrainRef.current = terrain;
 
   const connected = useMemo(() => computeConnected(state), [state.map.placed, state.map.roads]);
+  const popCap = useMemo(() => populationCapacity(state, connected), [state.buildings.house, state.map.placed, connected]);
 
   useEffect(() => {
     void (async () => {
@@ -190,6 +192,12 @@ export function App() {
               <span className="rb-key">materials</span>
               <span className="rb-val">{Math.floor(totalMaterials(state.resources))}</span>
             </button>
+            <span className="rb-cell">
+              <span className="rb-key">pop</span>
+              <span className="rb-val">
+                {Math.floor(state.meta.population)}/{popCap}
+              </span>
+            </span>
             <span className="rb-cell">
               <span className="rb-key">research</span>
               <span className="rb-val">{Math.floor(state.resources.research)}</span>

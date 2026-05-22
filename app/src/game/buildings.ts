@@ -24,6 +24,12 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     baseCost: 10,
     costGrowth: 1.15
   },
+  house: {
+    id: "house",
+    label: "House",
+    baseCost: 30,
+    costGrowth: 1.18
+  },
   mine: {
     id: "mine",
     label: "Mine",
@@ -32,6 +38,11 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     unlock: { resource: "credits", gte: 50 }
   }
 };
+
+export const HOUSE_CAPACITY = 10;
+export const POP_GROWTH_RATE = 0.5;
+export const POP_DECAY_RATE = 0.2;
+export const POP_FOOD_RATE = 0.05;
 
 export const ROAD_COST = 2;
 
