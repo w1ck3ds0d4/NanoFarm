@@ -116,15 +116,23 @@ export function drawTerrainTile(
 
 export function drawIsoRoad(g: Graphics): void {
   g.clear();
-  // paved diamond filling most of the tile
+  // Paved diamond filling the FULL tile, edge to edge. Previous draw
+  // inset the polygon by 2px on every side, which left a green
+  // border around each road tile - so two adjacent roads visually
+  // became two islands with a grass strip between them, matching the
+  // "small gap" complaint. Edge-to-edge fill means adjacent road
+  // tiles share their edges cleanly and the network reads as one
+  // continuous strip.
   g.poly([
-    TILE_W / 2, 2,
-    TILE_W - 2, TILE_H / 2,
-    TILE_W / 2, TILE_H - 2,
-    2, TILE_H / 2
+    TILE_W / 2, 0,
+    TILE_W, TILE_H / 2,
+    TILE_W / 2, TILE_H,
+    0, TILE_H / 2
   ]);
   g.fill({ color: 0x6a5c40 });
-  // center stripe
+  // Center stripe stays so the road still reads as paved instead of
+  // a flat brown polygon. Sits per-tile, so a long road shows a
+  // dashed line of stripes along its length.
   g.rect(TILE_W / 2 - 3, TILE_H / 2 - 1, 6, 2);
   g.fill({ color: 0x8a7c5a });
 }
