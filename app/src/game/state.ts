@@ -74,6 +74,27 @@ export function reducer(state: GameState, action: Action): GameState {
       const key = `${action.x},${action.y}`;
       if (state.map.placed[key]) return state;
       if (state.map.roads[key]) return state;
+      // Non-main buildings must touch main or a road on a 4-cardinal
+      // neighbour. Without this check the player can spend credits on a
+      // stranded farm/house/mine that never connects and never produces,
+      // which combined with the post-purchase 0-credit state is a
+      // soft-lock. The BuildPalette hint already tells the player this;
+      // the reducer now enforces it.
+      if (action.building !== "main") {
+        const neighbors: Array<[number, number]> = [
+          [action.x - 1, action.y],
+          [action.x + 1, action.y],
+          [action.x, action.y - 1],
+          [action.x, action.y + 1],
+        ];
+        const connectsToNetwork = neighbors.some(([nx, ny]) => {
+          const nKey = `${nx},${ny}`;
+          if (state.map.roads[nKey]) return true;
+          if (state.map.placed[nKey] === "main") return true;
+          return false;
+        });
+        if (!connectsToNetwork) return state;
+      }
       return {
         ...state,
         resources: { ...state.resources, credits: state.resources.credits - cost },
