@@ -391,6 +391,24 @@ button:disabled {
   white-space: nowrap;
 }
 
+/* ============ PLACEMENT HINT ============ */
+.placement-hint {
+  position: absolute;
+  bottom: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(16, 20, 10, 0.92);
+  border: 1px solid #2a3015;
+  color: #ccff44;
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  text-shadow: 0 0 4px #000;
+  white-space: nowrap;
+  z-index: 4;
+}
+
 @keyframes pulse {
   0%,
   100% {

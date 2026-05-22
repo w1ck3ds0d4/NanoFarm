@@ -53,14 +53,8 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
           place your main building first. everything else unlocks once main exists.
         </div>
       )}
-      {mainPlaced && selected && (
-        <div className="bp-hint">
-          {selected === "main" && "click a green tile to place your main building."}
-          {selected === "road" && "click tiles to lay roads. they branch out from main."}
-          {(selected === "farm" || selected === "mine" || selected === "house") &&
-            "click a green tile adjacent to a road or main building."}
-        </div>
-      )}
+      {/* per-selection placement hint moved to App.tsx so it survives the
+          build-panel auto-close. */}
     </div>
   );
 }

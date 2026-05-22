@@ -224,6 +224,23 @@ export function App() {
           </div>
         )}
 
+        {/*
+          Placement hint banner. Used to live inside BuildPalette, but the
+          panel auto-closes on select so the hint vanished exactly when the
+          player needed it. Hoisted here so it survives the close and the
+          rule for adjacency is visible while clicking the map.
+        */}
+        {selected !== null && (
+          <div className="placement-hint">
+            {selected === "main" &&
+              "click a green tile to place your main building."}
+            {selected === "road" &&
+              "click a tile adjacent to main, an existing road, or a building."}
+            {(selected === "farm" || selected === "mine" || selected === "house") &&
+              "click a green tile adjacent to main or a road."}
+          </div>
+        )}
+
         <div className="bottom-hud">
           <div className="cam-meta">
             cam {Math.round(cameraX)},{Math.round(cameraY)} <span className="dim">|</span>{" "}
