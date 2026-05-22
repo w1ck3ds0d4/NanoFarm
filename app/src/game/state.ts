@@ -2,15 +2,18 @@ import {
   type GameState,
   type BuildingId,
   type EventEffect,
+  type ResourceMap,
+  type ResourceId,
+  MATERIAL_IDS,
   makeInitialState
 } from "@nanofarm/shared";
-import { BUILDING_DEFS, costFor } from "./buildings";
+import { BUILDING_DEFS, ROAD_COST, costFor, productionFor } from "./buildings";
 
 export type Action =
   | { type: "hydrate"; state: GameState }
-  | { type: "harvest" }
-  | { type: "tick"; dt: number; now: number }
-  | { type: "buy-building"; building: BuildingId }
+  | { type: "tick"; now: number; produced: ResourceMap }
+  | { type: "place-building"; building: BuildingId; x: number; y: number }
+  | { type: "place-road"; x: number; y: number }
   | { type: "queue-event"; eventId: string }
   | { type: "open-event"; eventId: string }
   | { type: "resolve-event"; eventId: string }
@@ -19,44 +22,65 @@ export type Action =
   | { type: "schedule-event"; eventId: string; fireAt: number }
   | { type: "reset"; now: number };
 
+function emptyResources(): ResourceMap {
+  return { credits: 0, research: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 };
+}
+
 export function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
     case "hydrate": {
       return action.state;
     }
-    case "harvest": {
-      return {
-        ...state,
-        resources: { ...state.resources, credits: state.resources.credits + 1 }
-      };
-    }
     case "tick": {
-      const { dt, now } = action;
-      const next: Record<string, number> = { ...state.resources };
-      for (const id of Object.keys(state.buildings) as BuildingId[]) {
-        const def = BUILDING_DEFS[id];
-        const owned = state.buildings[id].count;
-        if (owned <= 0) continue;
-        const out = def.produces;
-        next[out.resource] = (next[out.resource] ?? 0) + out.ratePerSecond * owned * dt;
-      }
+      const r = state.resources;
       return {
         ...state,
-        meta: { ...state.meta, lastTickAt: now },
-        resources: next as GameState["resources"]
+        meta: { ...state.meta, lastTickAt: action.now },
+        resources: {
+          credits: r.credits + action.produced.credits,
+          research: r.research + action.produced.research,
+          wood: r.wood + action.produced.wood,
+          iron: r.iron + action.produced.iron,
+          stone: r.stone + action.produced.stone,
+          water: r.water + action.produced.water,
+          potatoes: r.potatoes + action.produced.potatoes
+        }
       };
     }
-    case "buy-building": {
+    case "place-building": {
       const def = BUILDING_DEFS[action.building];
       const owned = state.buildings[action.building].count;
+      if (def.maxCount !== undefined && owned >= def.maxCount) return state;
       const cost = costFor(def, owned);
       if (state.resources.credits < cost) return state;
+      const key = `${action.x},${action.y}`;
+      if (state.map.placed[key]) return state;
+      if (state.map.roads[key]) return state;
       return {
         ...state,
         resources: { ...state.resources, credits: state.resources.credits - cost },
         buildings: {
           ...state.buildings,
           [action.building]: { id: action.building, count: owned + 1 }
+        },
+        map: {
+          ...state.map,
+          placed: { ...state.map.placed, [key]: action.building }
+        }
+      };
+    }
+    case "place-road": {
+      const cost = ROAD_COST;
+      if (state.resources.credits < cost) return state;
+      const key = `${action.x},${action.y}`;
+      if (state.map.placed[key]) return state;
+      if (state.map.roads[key]) return state;
+      return {
+        ...state,
+        resources: { ...state.resources, credits: state.resources.credits - cost },
+        map: {
+          ...state.map,
+          roads: { ...state.map.roads, [key]: true }
         }
       };
     }
@@ -114,6 +138,7 @@ export function reducer(state: GameState, action: Action): GameState {
     }
     case "grant-ai-tokens": {
       const amount = action.tools.length;
+      const each = amount / MATERIAL_IDS.length;
       return {
         ...state,
         meta: {
@@ -123,7 +148,10 @@ export function reducer(state: GameState, action: Action): GameState {
         },
         resources: {
           ...state.resources,
-          materials: state.resources.materials + amount
+          wood: state.resources.wood + each,
+          iron: state.resources.iron + each,
+          stone: state.resources.stone + each,
+          water: state.resources.water + each
         }
       };
     }
@@ -143,4 +171,24 @@ export function reducer(state: GameState, action: Action): GameState {
       return makeInitialState(action.now);
     }
   }
+}
+
+export function computeProduction(
+  state: GameState,
+  connected: Set<string>,
+  neighborsAt: (x: number, y: number) => import("@nanofarm/shared").TerrainType[],
+  dtSec: number
+): ResourceMap {
+  const out = emptyResources();
+  for (const [key, id] of Object.entries(state.map.placed) as [string, BuildingId][]) {
+    if (id === "main") continue; // main itself does not produce
+    if (!connected.has(key)) continue; // disconnected buildings are idle
+    const [x, y] = key.split(",").map(Number);
+    const rules = productionFor(id, neighborsAt(x, y));
+    for (const k of Object.keys(rules) as ResourceId[]) {
+      const v = rules[k] ?? 0;
+      out[k] += v * dtSec;
+    }
+  }
+  return out;
 }

@@ -1,5 +1,8 @@
 import type { GameState } from "@nanofarm/shared";
+import { neighborTerrains } from "@nanofarm/shared";
 import type { Action } from "./state";
+import { computeProduction } from "./state";
+import { computeConnected } from "./connectivity";
 import { evaluateTriggers } from "./events";
 import type { TokenDrainer } from "./tokens";
 
@@ -9,6 +12,7 @@ const EVENT_CHECK_INTERVAL_MS = 1000;
 
 export interface LoopDeps {
   getState: () => GameState;
+  getTerrain: () => Uint8Array;
   dispatch: (a: Action) => void;
   drainer: TokenDrainer;
 }
@@ -43,8 +47,20 @@ export class GameLoop {
 
     const now = Date.now();
     const dtSec = dtMs / 1000;
+    const state = this.deps.getState();
+    const terrain = this.deps.getTerrain();
+    const w = state.map.width;
+    const h = state.map.height;
 
-    this.deps.dispatch({ type: "tick", dt: dtSec, now });
+    const connected = computeConnected(state);
+    const produced = computeProduction(
+      state,
+      connected,
+      (x, y) => neighborTerrains(terrain, w, h, x, y),
+      dtSec
+    );
+
+    this.deps.dispatch({ type: "tick", now, produced });
 
     if (now - this.lastHookDrain >= HOOK_DRAIN_INTERVAL_MS) {
       this.lastHookDrain = now;

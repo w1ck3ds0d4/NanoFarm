@@ -1,12 +1,41 @@
-export type ResourceId = "credits" | "materials" | "research";
+import { DEFAULT_MAP_SIZE } from "./map";
+
+export type ResourceId =
+  | "credits"
+  | "research"
+  | "wood"
+  | "iron"
+  | "stone"
+  | "water"
+  | "potatoes";
 
 export type ResourceMap = Record<ResourceId, number>;
 
-export const RESOURCE_IDS: readonly ResourceId[] = ["credits", "materials", "research"] as const;
+export const RESOURCE_IDS: readonly ResourceId[] = [
+  "credits",
+  "research",
+  "wood",
+  "iron",
+  "stone",
+  "water",
+  "potatoes"
+] as const;
 
-export type BuildingId = "farm" | "mine";
+export const MATERIAL_IDS: readonly ResourceId[] = [
+  "wood",
+  "iron",
+  "stone",
+  "water",
+  "potatoes"
+] as const;
 
-export const BUILDING_IDS: readonly BuildingId[] = ["farm", "mine"] as const;
+export function totalMaterials(r: ResourceMap): number {
+  return r.wood + r.iron + r.stone + r.water + r.potatoes;
+}
+
+export type BuildingId = "main" | "farm" | "mine";
+
+export const BUILDING_IDS: readonly BuildingId[] = ["main", "farm", "mine"] as const;
 
 export interface BuildingState {
   id: BuildingId;
@@ -34,14 +63,29 @@ export interface MetaState {
   totalAiTokensEarned: number;
 }
 
+export interface MapState {
+  width: number;
+  height: number;
+  seed: number;
+  /** map of "x,y" -> BuildingId. terrain is regenerated from the seed. */
+  placed: Record<string, BuildingId>;
+  /** set of road tiles, keyed "x,y". value is always true. */
+  roads: Record<string, true>;
+}
+
 export interface GameState {
   meta: MetaState;
   resources: ResourceMap;
   buildings: BuildingsState;
   events: EventsState;
+  map: MapState;
 }
 
-export function makeInitialState(now: number): GameState {
+function pickSeed(): number {
+  return Math.floor(Math.random() * 0x7fffffff);
+}
+
+export function makeInitialState(now: number, seed?: number): GameState {
   return {
     meta: {
       startedAt: now,
@@ -49,8 +93,9 @@ export function makeInitialState(now: number): GameState {
       hookDrainedAt: 0,
       totalAiTokensEarned: 0
     },
-    resources: { credits: 0, materials: 0, research: 0 },
+    resources: { credits: 10, research: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 },
     buildings: {
+      main: { id: "main", count: 0 },
       farm: { id: "farm", count: 0 },
       mine: { id: "mine", count: 0 }
     },
@@ -59,6 +104,13 @@ export function makeInitialState(now: number): GameState {
       queuedIds: [],
       activeId: null,
       scheduled: []
+    },
+    map: {
+      width: DEFAULT_MAP_SIZE,
+      height: DEFAULT_MAP_SIZE,
+      seed: seed ?? pickSeed(),
+      placed: {},
+      roads: {}
     }
   };
 }

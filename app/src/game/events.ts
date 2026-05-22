@@ -1,50 +1,9 @@
 import type { EventDef, EventEffect, GameState } from "@nanofarm/shared";
 
-export const EVENT_DEFS: EventDef[] = [
-  {
-    id: "first-thousand-credits",
-    title: "A growing town",
-    body: "your settlement has reached one thousand nano-credits in trade. the elders gather to decide what to invest in first.",
-    trigger: { kind: "milestone", resource: "credits", gte: 1000 },
-    oncePerRun: true,
-    choices: [
-      {
-        label: "Build a school",
-        effects: [
-          { kind: "deduct", resource: "credits", amount: 200 },
-          { kind: "grant", resource: "research", amount: 5 }
-        ]
-      },
-      {
-        label: "Build a hospital",
-        effects: [
-          { kind: "deduct", resource: "credits", amount: 200 },
-          { kind: "grant", resource: "materials", amount: 20 }
-        ]
-      }
-    ]
-  },
-  {
-    id: "ten-minutes-in",
-    title: "A traveler arrives",
-    body: "a stranger appears at the edge of the settlement carrying a small bundle. they offer to teach a useful trick.",
-    trigger: { kind: "time", minutesSinceStart: 10 },
-    oncePerRun: true,
-    choices: [
-      {
-        label: "Listen carefully",
-        effects: [{ kind: "grant", resource: "research", amount: 3 }]
-      },
-      {
-        label: "Offer food and send them on",
-        effects: [
-          { kind: "deduct", resource: "materials", amount: 5 },
-          { kind: "grant", resource: "credits", amount: 50 }
-        ]
-      }
-    ]
-  }
-];
+// random events are temporarily disabled while the road / main-building system
+// is in development. the trigger and effect infrastructure stays in place so
+// content can be re-added later without re-wiring everything.
+export const EVENT_DEFS: EventDef[] = [];
 
 export const EVENT_BY_ID = new Map<string, EventDef>(EVENT_DEFS.map((e) => [e.id, e]));
 

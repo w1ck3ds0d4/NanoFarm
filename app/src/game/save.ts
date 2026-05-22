@@ -1,5 +1,5 @@
 import type { GameState, SaveBlob } from "@nanofarm/shared";
-import { CURRENT_SAVE_VERSION, makeInitialState } from "@nanofarm/shared";
+import { CURRENT_SAVE_VERSION, hydrateMissingFields, makeInitialState } from "@nanofarm/shared";
 import type { StorageAdapter } from "../adapter/storage";
 
 const SAVE_INTERVAL_MS = 5000;
@@ -56,7 +56,7 @@ export async function loadOrInit(
 ): Promise<GameState> {
   const blob = await adapter.load();
   if (!blob) return makeInitialState(now);
-  return migrate(blob).state;
+  return hydrateMissingFields(migrate(blob).state);
 }
 
 function migrate(blob: SaveBlob): SaveBlob {
