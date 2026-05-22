@@ -91,4 +91,4 @@ Do not open a public issue. Email `daniel.svs@outlook.com`. See [SECURITY.md](SE
 
 ## License of contributions
 
-NanoFarm is MIT-licensed. By opening a PR you agree that your contribution may be redistributed under the MIT license. See [LICENSE](LICENSE).
+NanoFarm is dual-licensed under AGPL v3 + a separate commercial license (see [LICENSE](LICENSE) and [COMMERCIAL.md](COMMERCIAL.md)). By opening a PR you agree that your contribution may be redistributed under both licenses.
