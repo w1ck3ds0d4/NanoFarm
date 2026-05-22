@@ -157,10 +157,23 @@ const MAIN_PALETTE: BuildingPalette = {
   accent: 0xffe068
 };
 
+const HOUSE_PALETTE: BuildingPalette = {
+  top: 0xc06848,
+  right: 0x8a4828,
+  left: 0x5a3018,
+  accent: 0xeed8b8
+};
+
 export function drawIsoBuilding(g: Graphics, kind: BuildingId, dim = false): void {
   g.clear();
   const p =
-    kind === "farm" ? FARM_PALETTE : kind === "mine" ? MINE_PALETTE : MAIN_PALETTE;
+    kind === "farm"
+      ? FARM_PALETTE
+      : kind === "mine"
+      ? MINE_PALETTE
+      : kind === "house"
+      ? HOUSE_PALETTE
+      : MAIN_PALETTE;
   const H = kind === "main" ? MAIN_BUILDING_HEIGHT : BUILDING_HEIGHT;
   const alpha = dim ? 0.45 : 1;
 
@@ -196,6 +209,12 @@ export function drawIsoBuilding(g: Graphics, kind: BuildingId, dim = false): voi
     g.fill({ color: p.accent, alpha });
   } else if (kind === "mine") {
     g.rect(TILE_W / 2 - 5, TILE_H / 2 - H - 1, 10, 2);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "house") {
+    // house: door + window accents on the front faces
+    g.rect(TILE_W / 2 + 2, TILE_H / 2 - 2, 3, 5);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 4 - 1, TILE_H / 2 - 3, 3, 3);
     g.fill({ color: p.accent, alpha });
   } else {
     // main: peaked accent in center
