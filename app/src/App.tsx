@@ -61,14 +61,30 @@ export function App() {
   const [hookStatus, setHookStatus] = useState<HookStatus>(
     drainerRef.current.isAvailable() ? "disconnected" : "unavailable"
   );
-  const [buildOpen, setBuildOpen] = useState(false);
   const [selected, setSelected] = useState<Placeable | null>(null);
-  const [materialsOpen, setMaterialsOpen] = useState(false);
-  const [populationOpen, setPopulationOpen] = useState(false);
-  const [researchOpen, setResearchOpen] = useState(false);
-  const [needsOpen, setNeedsOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [worldOpen, setWorldOpen] = useState(false);
+  // Single panel state - only one HUD panel / overlay is ever open
+  // at a time, so toggles behave like a tab bar instead of stacking
+  // overlapping windows on top of each other.
+  type OpenPanel =
+    | "materials"
+    | "population"
+    | "needs"
+    | "research"
+    | "settings"
+    | "world"
+    | "build"
+    | null;
+  const [openPanel, setOpenPanel] = useState<OpenPanel>(null);
+  function togglePanel(p: Exclude<OpenPanel, null>) {
+    setOpenPanel((cur) => (cur === p ? null : p));
+  }
+  const materialsOpen = openPanel === "materials";
+  const populationOpen = openPanel === "population";
+  const needsOpen = openPanel === "needs";
+  const researchOpen = openPanel === "research";
+  const settingsOpen = openPanel === "settings";
+  const worldOpen = openPanel === "world";
+  const buildOpen = openPanel === "build";
   // Tile-key of the building the player is currently inspecting, or
   // null. Opened by tapping a placed building when nothing is
   // selected for placement; closed by the panel's close button, by
@@ -133,16 +149,8 @@ export function App() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        // Single press closes every open overlay / panel and cancels
-        // placement so the player always returns to a clean map view.
         setSelected(null);
-        setBuildOpen(false);
-        setMaterialsOpen(false);
-        setPopulationOpen(false);
-        setResearchOpen(false);
-        setNeedsOpen(false);
-        setSettingsOpen(false);
-        setWorldOpen(false);
+        setOpenPanel(null);
         setInspected(null);
       }
     }
@@ -166,7 +174,7 @@ export function App() {
     // see and click the map to place. The lingering placement-state
     // is surfaced by the floating "placing: X" pill below, which
     // doubles as a cancel button.
-    if (p !== null) setBuildOpen(false);
+    if (p !== null) setOpenPanel(null);
   }
 
   function onTileClick(tx: number, ty: number) {
@@ -293,7 +301,7 @@ export function App() {
             <button
               type="button"
               className={"rb-cell rb-clickable" + (materialsOpen ? " active" : "")}
-              onClick={() => setMaterialsOpen((o) => !o)}
+              onClick={() => togglePanel("materials")}
               title="materials"
             >
               <span className="rb-key">mat</span>
@@ -302,7 +310,7 @@ export function App() {
             <button
               type="button"
               className={"rb-cell rb-clickable" + (populationOpen ? " active" : "")}
-              onClick={() => setPopulationOpen((o) => !o)}
+              onClick={() => togglePanel("population")}
               title="population"
             >
               <span className="rb-key">pop</span>
@@ -313,7 +321,7 @@ export function App() {
             <button
               type="button"
               className={"rb-cell rb-clickable" + (needsOpen ? " active" : "")}
-              onClick={() => setNeedsOpen((o) => !o)}
+              onClick={() => togglePanel("needs")}
               title="happiness breakdown"
             >
               <span className="rb-key">hpy</span>
@@ -352,7 +360,7 @@ export function App() {
             <button
               type="button"
               className={"rb-cell rb-clickable" + (researchOpen ? " active" : "")}
-              onClick={() => setResearchOpen((o) => !o)}
+              onClick={() => togglePanel("research")}
               title="research"
             >
               <span className="rb-key">rs</span>
@@ -367,26 +375,25 @@ export function App() {
         {populationOpen && <PopulationOverlay state={state} />}
 
         {needsOpen && (
-          <NeedsPanel state={state} onClose={() => setNeedsOpen(false)} />
+          <NeedsPanel state={state} onClose={() => setOpenPanel(null)} />
         )}
 
         {researchOpen && (
           <ResearchPanel
             state={state}
             onResearch={(tech) => dispatch({ type: "research-tech", tech })}
-            onClose={() => setResearchOpen(false)}
+            onClose={() => setOpenPanel(null)}
           />
         )}
 
         {worldOpen && (
           <WorldMapPanel
             state={state}
-            onClose={() => setWorldOpen(false)}
+            onClose={() => setOpenPanel(null)}
             onTravel={(city) => {
               dispatch({ type: "travel-city", city, now: Date.now() });
               setSelected(null);
-              setBuildOpen(false);
-              setWorldOpen(false);
+              setOpenPanel(null);
             }}
           />
         )}
@@ -395,17 +402,16 @@ export function App() {
           <SettingsPanel
             hookStatus={hookStatus}
             onConnectHook={onConnectHook}
-            onClose={() => setSettingsOpen(false)}
+            onClose={() => setOpenPanel(null)}
             onResetZoom={() => setZoom(DEFAULT_ZOOM)}
             onRecenter={() => {
               recenterOnMain();
-              setSettingsOpen(false);
+              setOpenPanel(null);
             }}
             onNewRun={() => {
               dispatch({ type: "reset", now: Date.now() });
               setSelected(null);
-              setBuildOpen(false);
-              setSettingsOpen(false);
+              setOpenPanel(null);
             }}
           />
         )}
@@ -461,7 +467,7 @@ export function App() {
             <button
               type="button"
               className="hud-btn"
-              onClick={() => setSettingsOpen((o) => !o)}
+              onClick={() => togglePanel("settings")}
               title="settings"
             >
               settings
@@ -469,7 +475,7 @@ export function App() {
             <button
               type="button"
               className={"hud-btn" + (worldOpen ? " active" : "")}
-              onClick={() => setWorldOpen((o) => !o)}
+              onClick={() => togglePanel("world")}
               title="world map and prestige"
             >
               map
@@ -497,7 +503,7 @@ export function App() {
             <button
               type="button"
               className={"build-fab" + (buildOpen ? " active" : "")}
-              onClick={() => setBuildOpen((o) => !o)}
+              onClick={() => togglePanel("build")}
             >
               build
             </button>
@@ -515,7 +521,7 @@ export function App() {
               <button
                 type="button"
                 className="bp-close"
-                onClick={() => setBuildOpen(false)}
+                onClick={() => setOpenPanel(null)}
                 aria-label="close build panel"
               >
                 x
