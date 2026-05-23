@@ -1114,18 +1114,21 @@ button:disabled {
   display: block;
   width: 100%;
   height: auto;
-  max-height: 260px;
-  background: rgba(8, 16, 28, 0.6);
+  max-height: 340px;
   border: 1px solid #2a4060;
   margin-bottom: 10px;
 }
 
-.wm-marker {
+.wm-region {
   cursor: pointer;
 }
 
-.wm-marker:hover circle:first-child {
-  filter: brightness(1.4);
+.wm-region.locked {
+  cursor: default;
+}
+
+.wm-region:not(.locked):hover polygon {
+  filter: brightness(1.25);
 }
 
 .wm-detail {
