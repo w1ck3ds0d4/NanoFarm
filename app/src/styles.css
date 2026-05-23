@@ -81,7 +81,7 @@ button:disabled {
   left: 0;
   right: 0;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
   padding: 6px 8px;
@@ -90,13 +90,6 @@ button:disabled {
   z-index: 4;
   font-size: 10px;
   height: 28px;
-}
-
-.game-title {
-  font-size: 12px;
-  margin: 0;
-  color: #ccff44;
-  letter-spacing: 1.5px;
 }
 
 .resource-bar {
@@ -199,6 +192,18 @@ button:disabled {
   height: 28px;
 }
 
+.bh-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bh-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .cam-meta {
   color: #88aa33;
   letter-spacing: 1px;
@@ -207,6 +212,29 @@ button:disabled {
 
 .cam-meta .dim {
   color: #444;
+}
+
+.hud-btn {
+  background: transparent;
+  border: 1px solid #2a3015;
+  color: #88aa33;
+  padding: 3px 9px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: lowercase;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.hud-btn:hover:not(:disabled) {
+  background: #1a2010;
+  border-color: #ccff44;
+  color: #ccff44;
+}
+
+.hud-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .build-fab {
@@ -838,4 +866,95 @@ button:disabled {
   color: #3a5a5e;
   cursor: not-allowed;
 }
+
+/* ============ SETTINGS PANEL ============ */
+.settings-panel {
+  position: absolute;
+  bottom: 36px;
+  left: 8px;
+  width: 240px;
+  background: rgba(10, 14, 5, 0.97);
+  border: 1px solid #ccff44;
+  padding: 10px;
+  z-index: 6;
+  color: #88aa33;
+  font-size: 11px;
+}
+
+.sp-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #2a3015;
+}
+
+.sp-title {
+  flex: 1;
+  color: #ccff44;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.sp-close {
+  background: transparent;
+  border: 1px solid #2a3015;
+  color: #88aa33;
+  padding: 1px 8px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sp-close:hover {
+  background: #1a2010;
+  color: #ccff44;
+}
+
+.sp-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sp-btn {
+  flex: 0 0 auto;
+  background: transparent;
+  border: 1px solid #ccff44;
+  color: #ccff44;
+  padding: 4px 10px;
+  font-size: 10px;
+  text-transform: lowercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  font-family: inherit;
+  min-width: 110px;
+  text-align: center;
+}
+
+.sp-btn:hover {
+  background: #1a2010;
+}
+
+.sp-btn.danger {
+  border-color: #ff6644;
+  color: #ff8844;
+}
+
+.sp-btn.danger:hover {
+  background: #2a1010;
+}
+
+.sp-hint {
+  color: #557722;
+  font-size: 10px;
+}
+
 

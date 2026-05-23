@@ -21,6 +21,7 @@ import { BuildingInspector } from "./ui/BuildingInspector";
 import { BuildingTooltip } from "./ui/BuildingTooltip";
 import { MaterialsOverlay } from "./ui/MaterialsOverlay";
 import { ResearchPanel } from "./ui/ResearchPanel";
+import { SettingsPanel } from "./ui/SettingsPanel";
 
 const STAGE_W = 500;
 const STAGE_H = 400;
@@ -45,6 +46,7 @@ export function App() {
   const [selected, setSelected] = useState<Placeable | null>(null);
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // Tile-key of the building the player is currently inspecting, or
   // null. Opened by tapping a placed building when nothing is
   // selected for placement; closed by the panel's close button, by
@@ -172,6 +174,19 @@ export function App() {
     setCameraY(Math.max(0, Math.min(h - 1, cy)));
   }
 
+  function recenterOnMain() {
+    for (const [key, id] of Object.entries(state.map.placed)) {
+      if (id === "main") {
+        const [mxStr, myStr] = key.split(",");
+        setCameraX(Number(mxStr));
+        setCameraY(Number(myStr));
+        setZoom(DEFAULT_ZOOM);
+        return true;
+      }
+    }
+    return false;
+  }
+
   async function onConnectHook() {
     try {
       await drainerRef.current.connect();
@@ -230,7 +245,6 @@ export function App() {
         )}
 
         <div className="top-hud">
-          <h1 className="game-title">NanoFarm</h1>
           <div className="resource-bar">
             <span className="rb-cell">
               <span className="rb-key">credits</span>
@@ -280,6 +294,26 @@ export function App() {
           />
         )}
 
+        {settingsOpen && (
+          <SettingsPanel
+            onClose={() => setSettingsOpen(false)}
+            onResetZoom={() => setZoom(DEFAULT_ZOOM)}
+            onRecenter={() => {
+              const found = recenterOnMain();
+              if (!found) window.alert("place your main building first.");
+              setSettingsOpen(false);
+            }}
+            onNewRun={() => {
+              if (window.confirm("start a new run? this wipes the current map and resources.")) {
+                dispatch({ type: "reset", now: Date.now() });
+                setSelected(null);
+                setBuildOpen(false);
+                setSettingsOpen(false);
+              }
+            }}
+          />
+        )}
+
         {inspected !== null && state.map.placed[inspected] && (
           <BuildingInspector
             state={state}
@@ -319,33 +353,57 @@ export function App() {
         )}
 
         <div className="bottom-hud">
-          <div className="cam-meta">
-            cam {Math.round(cameraX)},{Math.round(cameraY)} <span className="dim">|</span>{" "}
-            zoom {zoom.toFixed(1)}x
+          <div className="bh-left">
+            <div className="cam-meta">
+              cam {Math.round(cameraX)},{Math.round(cameraY)} <span className="dim">|</span>{" "}
+              zoom {zoom.toFixed(1)}x
+            </div>
+            <button
+              type="button"
+              className="hud-btn"
+              onClick={() => setSettingsOpen((o) => !o)}
+              title="settings"
+            >
+              settings
+            </button>
+            <button
+              type="button"
+              className="hud-btn"
+              onClick={() => {
+                const found = recenterOnMain();
+                if (!found) window.alert("place your main building first.");
+              }}
+              title="recenter on main building"
+              disabled={state.buildings.main.count === 0}
+            >
+              map
+            </button>
           </div>
-          {selected !== null && !buildOpen && (
-            <button
-              type="button"
-              className="placing-pill"
-              onClick={() => setSelected(null)}
-              title="cancel placement"
-              aria-label={`cancel placing ${selected}`}
-            >
-              <span className="pp-label">
-                placing: {selected === "road" ? "road" : BUILDING_DEFS[selected].label.toLowerCase()}
-              </span>
-              <span className="pp-x">x</span>
-            </button>
-          )}
-          {!buildOpen && (
-            <button
-              type="button"
-              className="build-fab"
-              onClick={() => setBuildOpen(true)}
-            >
-              build
-            </button>
-          )}
+          <div className="bh-right">
+            {selected !== null && !buildOpen && (
+              <button
+                type="button"
+                className="placing-pill"
+                onClick={() => setSelected(null)}
+                title="cancel placement"
+                aria-label={`cancel placing ${selected}`}
+              >
+                <span className="pp-label">
+                  placing: {selected === "road" ? "road" : BUILDING_DEFS[selected].label.toLowerCase()}
+                </span>
+                <span className="pp-x">x</span>
+              </button>
+            )}
+            {!buildOpen && (
+              <button
+                type="button"
+                className="build-fab"
+                onClick={() => setBuildOpen(true)}
+              >
+                build
+              </button>
+            )}
+          </div>
         </div>
 
         {buildOpen && (
@@ -368,19 +426,6 @@ export function App() {
             <BuildPalette state={state} selected={selected} onSelect={onSelectPlaceable} />
             <div className="bp-stats">
               <span>ai materials this run: {Math.floor(state.meta.totalAiTokensEarned)}</span>
-              <button
-                type="button"
-                className="bp-reset"
-                onClick={() => {
-                  if (window.confirm("start a new run? this wipes the current map and resources.")) {
-                    dispatch({ type: "reset", now: Date.now() });
-                    setSelected(null);
-                    setBuildOpen(false);
-                  }
-                }}
-              >
-                new run
-              </button>
             </div>
           </div>
         )}
