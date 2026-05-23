@@ -116,7 +116,16 @@ export function App() {
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
+        // Single press closes every open overlay / panel and cancels
+        // placement so the player always returns to a clean map view.
         setSelected(null);
+        setBuildOpen(false);
+        setMaterialsOpen(false);
+        setPopulationOpen(false);
+        setResearchOpen(false);
+        setSettingsOpen(false);
+        setWorldOpen(false);
+        setInspected(null);
       }
     }
     window.addEventListener("keydown", onKey);
