@@ -506,6 +506,46 @@ button:disabled {
   color: #ff8866;
 }
 
+/* ============ BUILDING TOOLTIP ============ */
+.building-tooltip {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: rgba(10, 14, 5, 0.94);
+  border: 1px solid #2a3015;
+  color: #88aa33;
+  padding: 2px 7px;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+  text-shadow: 0 0 3px #000;
+}
+
+.building-tooltip .bt-label {
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.building-tooltip .bt-label.ok {
+  color: #ccff44;
+}
+
+.building-tooltip .bt-label.stranded {
+  color: #ff8844;
+}
+
+.building-tooltip .bt-sep {
+  color: #2a3015;
+  margin: 0 5px;
+}
+
+.building-tooltip .bt-summary {
+  color: #88aa33;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ============ STAGE HINT ============ */
 .stage-hint {
   position: absolute;
