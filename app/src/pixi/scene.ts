@@ -220,6 +220,18 @@ export function renderScene(scene: Scene, p: RenderParams): void {
   }
 
   // ============ buildings layer ============
+  // When the player has a placeable selected and is hovering an empty
+  // tile, fade any building that would visually sit on top of the
+  // hover position so the placement target stays visible. In this iso
+  // projection a building at (bx, by) is drawn in front of tile
+  // (hx, hy) when bx >= hx and by >= hy (it has a higher iso depth
+  // sum and shares the same screen column band). Limit the fade to a
+  // small wedge so the rest of the city stays opaque.
+  const fadeActive =
+    p.selectMode !== null && p.hoverX !== null && p.hoverY !== null;
+  const FADE_RADIUS = 4;
+  const FADE_ALPHA = 0.25;
+
   const wantedBuildings = new Set<string>();
   for (const [key, id] of Object.entries(p.state.map.placed) as [string, BuildingId][]) {
     const [wx, wy] = key.split(",").map(Number);
@@ -238,6 +250,20 @@ export function renderScene(scene: Scene, p: RenderParams): void {
     g.position.set(sx, sy);
     g.scale.set(p.zoom);
     g.zIndex = wx + wy;
+
+    let alpha = 1;
+    if (fadeActive) {
+      const dx = wx - (p.hoverX as number);
+      const dy = wy - (p.hoverY as number);
+      const occludes =
+        dx >= 0 &&
+        dy >= 0 &&
+        (dx > 0 || dy > 0) &&
+        dx <= FADE_RADIUS &&
+        dy <= FADE_RADIUS;
+      if (occludes) alpha = FADE_ALPHA;
+    }
+    g.alpha = alpha;
   }
   for (const key of Array.from(scene.buildingsPool.keys())) {
     if (!wantedBuildings.has(key)) {

@@ -127,30 +127,10 @@ function buildHtml(webview: vscode.Webview, distPath: string): string {
     `worker-src ${cspSource} blob:; ` +
     `connect-src ${cspSource} blob: data:;`;
 
-  // On-screen status banner. Visible without devtools so we can see
-  // how far the boot got: "html-parsed" means HTML loaded, "js-ran"
-  // means inline scripts can execute, "mounted" (set by main.tsx)
-  // means React mounted. If the banner stays at "html-parsed" the
-  // CSP is still blocking scripts.
-  const statusBanner = `
-    <div id="nf-boot-status" style="position:fixed;bottom:6px;right:8px;font:11px ui-monospace,monospace;color:#9f9;background:#0008;padding:4px 8px;border-radius:4px;z-index:99999;pointer-events:none">html-parsed</div>
-    <script>
-      window.addEventListener("error", function(e){
-        var s=document.getElementById("nf-boot-status");
-        if(s){s.style.color="#f99";s.textContent="error: "+(e.message||"unknown");}
-      });
-      var s=document.getElementById("nf-boot-status");
-      if(s){s.textContent="js-ran";}
-      console.log("nanofarm: html booted, inline script ran");
-    </script>`;
-
-  // Inject CSP into <head>, inject status banner just inside <body>.
-  let out = rewritten.replace(
+  return rewritten.replace(
     /<head>/,
     `<head>\n    <meta http-equiv="Content-Security-Policy" content="${csp}">`,
   );
-  out = out.replace(/<body([^>]*)>/, `<body$1>${statusBanner}`);
-  return out;
 }
 
 // ─── Message protocol ────────────────────────────────────────────────────────
