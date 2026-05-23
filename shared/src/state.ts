@@ -73,6 +73,27 @@ export const TECH_IDS: readonly TechId[] = [
 
 export type TechState = Record<TechId, boolean>;
 
+export type CityId = "verdant_valley" | "stonehaven" | "iron_reach" | "aether_spire";
+
+export const CITY_IDS: readonly CityId[] = [
+  "verdant_valley",
+  "stonehaven",
+  "iron_reach",
+  "aether_spire"
+] as const;
+
+export interface WorldState {
+  /** Where the player is currently living. The local map is the map
+   * of this city. */
+  currentCity: CityId;
+  /** Cities whose milestone has been completed at least once. Order
+   * matters: it's the chronological list of successful prestiges. */
+  completedCities: CityId[];
+  /** Accumulated prestige currency. Each settled city awards +1.
+   * Spent implicitly as a passive production buff via legacyBonus(). */
+  legacy: number;
+}
+
 export interface BuildingState {
   id: BuildingId;
   count: number;
@@ -118,6 +139,7 @@ export interface GameState {
   events: EventsState;
   map: MapState;
   techs: TechState;
+  world: WorldState;
 }
 
 function pickSeed(): number {
@@ -169,6 +191,11 @@ export function makeInitialState(now: number, seed?: number): GameState {
       industry: false,
       commerce: false,
       heavy_industry: false
+    },
+    world: {
+      currentCity: "verdant_valley",
+      completedCities: [],
+      legacy: 0
     }
   };
 }

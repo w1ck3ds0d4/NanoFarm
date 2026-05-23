@@ -22,6 +22,7 @@ import { BuildingTooltip } from "./ui/BuildingTooltip";
 import { MaterialsOverlay } from "./ui/MaterialsOverlay";
 import { ResearchPanel } from "./ui/ResearchPanel";
 import { SettingsPanel } from "./ui/SettingsPanel";
+import { WorldMapPanel } from "./ui/WorldMapPanel";
 
 const STAGE_W = 500;
 const STAGE_H = 400;
@@ -47,6 +48,7 @@ export function App() {
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [worldOpen, setWorldOpen] = useState(false);
   // Tile-key of the building the player is currently inspecting, or
   // null. Opened by tapping a placed building when nothing is
   // selected for placement; closed by the panel's close button, by
@@ -285,6 +287,19 @@ export function App() {
           />
         )}
 
+        {worldOpen && (
+          <WorldMapPanel
+            state={state}
+            onClose={() => setWorldOpen(false)}
+            onTravel={(city) => {
+              dispatch({ type: "travel-city", city, now: Date.now() });
+              setSelected(null);
+              setBuildOpen(false);
+              setWorldOpen(false);
+            }}
+          />
+        )}
+
         {settingsOpen && (
           <SettingsPanel
             hookStatus={hookStatus}
@@ -292,17 +307,14 @@ export function App() {
             onClose={() => setSettingsOpen(false)}
             onResetZoom={() => setZoom(DEFAULT_ZOOM)}
             onRecenter={() => {
-              const found = recenterOnMain();
-              if (!found) window.alert("place your main building first.");
+              recenterOnMain();
               setSettingsOpen(false);
             }}
             onNewRun={() => {
-              if (window.confirm("start a new run? this wipes the current map and resources.")) {
-                dispatch({ type: "reset", now: Date.now() });
-                setSelected(null);
-                setBuildOpen(false);
-                setSettingsOpen(false);
-              }
+              dispatch({ type: "reset", now: Date.now() });
+              setSelected(null);
+              setBuildOpen(false);
+              setSettingsOpen(false);
             }}
           />
         )}
@@ -357,13 +369,9 @@ export function App() {
             </button>
             <button
               type="button"
-              className="hud-btn"
-              onClick={() => {
-                const found = recenterOnMain();
-                if (!found) window.alert("place your main building first.");
-              }}
-              title="recenter on main building"
-              disabled={state.buildings.main.count === 0}
+              className={"hud-btn" + (worldOpen ? " active" : "")}
+              onClick={() => setWorldOpen((o) => !o)}
+              title="world map and prestige"
             >
               map
             </button>

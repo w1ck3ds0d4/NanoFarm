@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 type HookStatus = "unavailable" | "disconnected" | "connected";
 
 interface Props {
@@ -17,6 +19,12 @@ export function SettingsPanel({
   onRecenter,
   onNewRun
 }: Props) {
+  // Inline confirm flow because the VS Code webview disables
+  // window.confirm/alert/prompt outright (returns undefined, no
+  // dialog ever shown), so the previous native-confirm-then-reset
+  // chain was a silent no-op.
+  const [confirmingNewRun, setConfirmingNewRun] = useState(false);
+
   return (
     <div className="settings-panel">
       <div className="sp-header">
@@ -60,12 +68,40 @@ export function SettingsPanel({
             </>
           )}
         </div>
-        <div className="sp-row danger">
-          <button className="sp-btn danger" onClick={onNewRun}>
-            new run
-          </button>
-          <span className="sp-hint">wipe map + resources</span>
-        </div>
+        {!confirmingNewRun ? (
+          <div className="sp-row danger">
+            <button
+              className="sp-btn danger"
+              onClick={() => setConfirmingNewRun(true)}
+            >
+              new run
+            </button>
+            <span className="sp-hint">wipe map + resources</span>
+          </div>
+        ) : (
+          <div className="sp-confirm">
+            <div className="sp-confirm-msg">
+              start a new run? this wipes the current map and resources.
+            </div>
+            <div className="sp-confirm-actions">
+              <button
+                className="sp-btn danger"
+                onClick={() => {
+                  setConfirmingNewRun(false);
+                  onNewRun();
+                }}
+              >
+                yes, wipe
+              </button>
+              <button
+                className="sp-btn"
+                onClick={() => setConfirmingNewRun(false)}
+              >
+                cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

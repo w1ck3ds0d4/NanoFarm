@@ -122,5 +122,17 @@ export function hydrateMissingFields(state: GameState): GameState {
       }
     };
   }
+  // Backfill the world / prestige slice. Pre-world saves drop into
+  // the starter city with no legacy.
+  if (!next.world) {
+    next = {
+      ...next,
+      world: {
+        currentCity: "verdant_valley",
+        completedCities: [],
+        legacy: 0
+      }
+    };
+  }
   return next;
 }

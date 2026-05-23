@@ -1,6 +1,7 @@
 import {
   type GameState,
   type BuildingId,
+  type CityId,
   type EventEffect,
   type ResourceMap,
   type ResourceId,
@@ -8,6 +9,7 @@ import {
   MATERIAL_IDS,
   makeInitialState
 } from "@nanofarm/shared";
+import { CITY_DEFS, legacyBonus } from "./cities";
 import {
   BUILDING_DEFS,
   ROAD_COST,
@@ -31,6 +33,7 @@ export type Action =
   | { type: "remove-building"; x: number; y: number }
   | { type: "place-road"; x: number; y: number }
   | { type: "research-tech"; tech: TechId }
+  | { type: "travel-city"; city: CityId; now: number }
   | { type: "queue-event"; eventId: string }
   | { type: "open-event"; eventId: string }
   | { type: "resolve-event"; eventId: string }
@@ -210,6 +213,44 @@ export function reducer(state: GameState, action: Action): GameState {
         }
       };
     }
+    case "travel-city": {
+      const def = CITY_DEFS[action.city];
+      if (!def) return state;
+      const w = state.world;
+      // Prereqs: every previous city must already be in completedCities
+      // (so you can only travel to cities you have unlocked).
+      for (const p of def.prereqs) {
+        if (!w.completedCities.includes(p)) return state;
+      }
+      // If we are leaving the current city and its milestone is met,
+      // mark it settled and award legacy +1. Travelling back to a
+      // city we have already settled does not award legacy again.
+      let nextCompleted = w.completedCities;
+      let nextLegacy = w.legacy;
+      const currentDef = CITY_DEFS[w.currentCity];
+      const isSettling =
+        currentDef &&
+        currentDef.isMilestoneMet(state) &&
+        !w.completedCities.includes(w.currentCity);
+      if (isSettling) {
+        nextCompleted = [...w.completedCities, w.currentCity];
+        nextLegacy = w.legacy + 1;
+      }
+      // Travelling wipes the local map and resources (it is a
+      // prestige in everything but name) while keeping techs &
+      // legacy. Techs persist because they represent player knowledge
+      // - it would be cruel to re-research everything every move.
+      const fresh = makeInitialState(action.now);
+      return {
+        ...fresh,
+        techs: state.techs,
+        world: {
+          currentCity: action.city,
+          completedCities: nextCompleted,
+          legacy: nextLegacy
+        }
+      };
+    }
     case "research-tech": {
       const def = TECH_DEFS[action.tech];
       if (!def) return state;
@@ -346,6 +387,10 @@ export function computeProduction(
   dtSec: number
 ): ResourceMap {
   const out = emptyResources();
+  // Prestige multiplier: each settled city left behind adds +5% to
+  // every producer's output. Applied uniformly so the world map's
+  // prestige loop has a tangible global effect.
+  const legacyMult = legacyBonus(state.world?.legacy ?? 0);
   for (const [key, id] of Object.entries(state.map.placed) as [string, BuildingId][]) {
     if (id === "main") continue; // main itself does not produce
     if (!connected.has(key)) continue; // disconnected buildings are idle
@@ -353,7 +398,7 @@ export function computeProduction(
     const rules = productionFor(id, neighborsAt(x, y), neighborBuildingsAt(state, x, y));
     for (const k of Object.keys(rules) as ResourceId[]) {
       const v = rules[k] ?? 0;
-      out[k] += v * dtSec;
+      out[k] += v * dtSec * legacyMult;
     }
   }
   return out;
