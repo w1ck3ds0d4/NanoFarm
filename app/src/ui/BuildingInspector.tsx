@@ -108,7 +108,7 @@ export function BuildingInspector({
         </div>
       )}
 
-      {(id === "farm" || id === "mine") && (
+      {id !== "main" && id !== "house" && (
         <>
           <div className="ip-rates">
             {(Object.entries(rates) as [ResourceId, number][]).map(([resource, rate]) =>
@@ -141,6 +141,12 @@ export function BuildingInspector({
         const count = state.buildings[id].count;
         const lastCost = costFor(def, count - 1);
         const refund = Math.floor(lastCost * 0.5);
+        const matRefunds = def.materialCost
+          ? (Object.entries(def.materialCost) as Array<[string, number]>)
+              .map(([m, a]) => `${Math.floor(a * 0.5)} ${m.slice(0, 3)}`)
+              .filter((s) => !s.startsWith("0 "))
+          : [];
+        const refundStr = [`${refund} cr`, ...matRefunds].join(" + ");
         return (
           <button
             type="button"
@@ -148,7 +154,7 @@ export function BuildingInspector({
             onClick={onRemove}
             title="remove this building and refund half its last placement cost"
           >
-            remove (refund: {refund} cr)
+            remove (refund: {refundStr})
           </button>
         );
       })()}

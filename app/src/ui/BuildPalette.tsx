@@ -1,5 +1,5 @@
 import type { BuildingId, GameState } from "@nanofarm/shared";
-import { BUILDING_DEFS, ROAD_COST, costFor } from "../game/buildings";
+import { BUILDING_DEFS, ROAD_COST, canAffordMaterials, costFor } from "../game/buildings";
 
 export type Placeable = BuildingId | "road";
 
@@ -24,11 +24,19 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
         const techUnlocked =
           !def.requiresTech || state.techs[def.requiresTech];
         const unlocked = resourceUnlocked && techUnlocked;
-        const canAfford = state.resources.credits >= cost;
+        const canAffordCredits = state.resources.credits >= cost;
+        const hasMaterials = canAffordMaterials(
+          def,
+          state.resources as unknown as Record<string, number>
+        );
+        const canAfford = canAffordCredits && hasMaterials;
         const isSelected = selected === id;
         // gate everything except `main` behind a placed main building.
         const needsMain = id !== "main" && !mainPlaced;
         if (!unlocked) return null;
+        const materialEntries = def.materialCost
+          ? (Object.entries(def.materialCost) as Array<[string, number]>)
+          : [];
         return (
           <button
             key={id}
@@ -40,7 +48,26 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
             <span className="bb-count">
               {def.maxCount !== undefined ? `${owned}/${def.maxCount}` : `x${owned}`}
             </span>
-            <span className="bb-cost">{atCap ? "—" : `${cost} cr`}</span>
+            <span className="bb-cost">
+              {atCap ? (
+                "—"
+              ) : (
+                <>
+                  <span className={canAffordCredits ? "" : "missing"}>{cost} cr</span>
+                  {materialEntries.map(([mat, amt]) => {
+                    const have =
+                      (state.resources as unknown as Record<string, number>)[mat] ?? 0;
+                    const ok = have >= amt;
+                    return (
+                      <span key={mat} className={ok ? "bb-mat" : "bb-mat missing"}>
+                        {" + "}
+                        {amt} {mat.slice(0, 3)}
+                      </span>
+                    );
+                  })}
+                </>
+              )}
+            </span>
           </button>
         );
       })}

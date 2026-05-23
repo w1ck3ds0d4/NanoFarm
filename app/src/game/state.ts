@@ -12,6 +12,7 @@ import {
   BUILDING_DEFS,
   ROAD_COST,
   TECH_DEFS,
+  canAffordMaterials,
   costFor,
   productionFor,
   type NeighborBuildings
@@ -84,6 +85,7 @@ export function reducer(state: GameState, action: Action): GameState {
       if (def.requiresTech && !state.techs[def.requiresTech]) return state;
       const cost = costFor(def, owned);
       if (state.resources.credits < cost) return state;
+      if (!canAffordMaterials(def, state.resources as unknown as Record<string, number>)) return state;
       const key = `${action.x},${action.y}`;
       if (state.map.placed[key]) return state;
       if (state.map.roads[key]) return state;
@@ -108,9 +110,19 @@ export function reducer(state: GameState, action: Action): GameState {
         });
         if (!connectsToNetwork) return state;
       }
+      const nextResources: ResourceMap = {
+        ...state.resources,
+        credits: state.resources.credits - cost
+      };
+      if (def.materialCost) {
+        for (const [mat, amt] of Object.entries(def.materialCost)) {
+          const k = mat as ResourceId;
+          nextResources[k] = Math.max(0, nextResources[k] - (amt ?? 0));
+        }
+      }
       return {
         ...state,
-        resources: { ...state.resources, credits: state.resources.credits - cost },
+        resources: nextResources,
         buildings: {
           ...state.buildings,
           [action.building]: { id: action.building, count: owned + 1 }
@@ -140,9 +152,21 @@ export function reducer(state: GameState, action: Action): GameState {
       const refund = Math.floor(lastCost * 0.5);
       const nextPlaced: typeof state.map.placed = { ...state.map.placed };
       delete nextPlaced[rKey];
+      const refundedResources: ResourceMap = {
+        ...state.resources,
+        credits: state.resources.credits + refund
+      };
+      // Materials refund 50% (floored, integer). Materials are flat,
+      // not growing with count, so the refund equation is symmetric.
+      if (def.materialCost) {
+        for (const [mat, amt] of Object.entries(def.materialCost)) {
+          const k = mat as ResourceId;
+          refundedResources[k] = refundedResources[k] + Math.floor((amt ?? 0) * 0.5);
+        }
+      }
       return {
         ...state,
-        resources: { ...state.resources, credits: state.resources.credits + refund },
+        resources: refundedResources,
         buildings: {
           ...state.buildings,
           [id]: { id, count: count - 1 }

@@ -114,6 +114,13 @@ button:disabled {
   line-height: 1;
 }
 
+/* Pull the very first cell's text flush to the HUD's left edge so
+   it visually aligns with the SETTINGS button below (which has the
+   same 8px container padding but no inner cell padding). */
+.resource-bar .rb-cell:first-child {
+  padding-left: 0;
+}
+
 .rb-key {
   color: #88aa33;
   text-transform: uppercase;
@@ -372,6 +379,15 @@ button:disabled {
 .bb-cost {
   color: #888;
   text-align: right;
+}
+
+.bb-mat {
+  color: #88aa33;
+}
+
+.bb-cost .missing,
+.bb-mat.missing {
+  color: #ff6644;
 }
 
 .bp-hint {

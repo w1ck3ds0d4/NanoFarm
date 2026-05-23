@@ -6,11 +6,17 @@ import type {
   TerrainType
 } from "@nanofarm/shared";
 
+export type MaterialCost = Partial<Record<"wood" | "iron" | "stone" | "water", number>>;
+
 export interface BuildingDef {
   id: BuildingId;
   label: string;
   baseCost: number;
   costGrowth: number;
+  /** Flat material cost in addition to credits. Does not scale with
+   * placement count - placing the 5th lab costs the same wood as the
+   * first, even though the credit price has grown. */
+  materialCost?: MaterialCost;
   /** Optional hard cap on placements (e.g. 1 for the main building). */
   maxCount?: number;
   /** Resource-amount gate (legacy / soft unlock). Visible only after met. */
@@ -38,34 +44,38 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     id: "house",
     label: "House",
     baseCost: 30,
-    costGrowth: 1.18
+    costGrowth: 1.18,
+    materialCost: { wood: 2 }
   },
   mine: {
     id: "mine",
     label: "Mine",
     baseCost: 100,
     costGrowth: 1.2,
+    materialCost: { wood: 3 },
     unlock: { resource: "credits", gte: 50 }
+  },
+  lumber_mill: {
+    id: "lumber_mill",
+    label: "Lumber Mill",
+    baseCost: 50,
+    costGrowth: 1.2,
+    unlock: { resource: "credits", gte: 30 }
   },
   lab: {
     id: "lab",
     label: "Research Lab",
     baseCost: 80,
     costGrowth: 1.25,
+    materialCost: { wood: 4 },
     unlock: { resource: "credits", gte: 60 }
-  },
-  lumber_mill: {
-    id: "lumber_mill",
-    label: "Lumber Mill",
-    baseCost: 120,
-    costGrowth: 1.2,
-    requiresTech: "agriculture"
   },
   granary: {
     id: "granary",
     label: "Granary",
     baseCost: 80,
     costGrowth: 1.18,
+    materialCost: { wood: 5 },
     requiresTech: "agriculture"
   },
   quarry: {
@@ -73,6 +83,7 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     label: "Quarry",
     baseCost: 150,
     costGrowth: 1.22,
+    materialCost: { wood: 6, stone: 2 },
     requiresTech: "industry"
   },
   market: {
@@ -80,6 +91,7 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     label: "Market",
     baseCost: 200,
     costGrowth: 1.25,
+    materialCost: { wood: 5, stone: 3 },
     requiresTech: "commerce"
   },
   factory: {
@@ -87,6 +99,7 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     label: "Factory",
     baseCost: 500,
     costGrowth: 1.3,
+    materialCost: { wood: 4, stone: 8, iron: 5 },
     requiresTech: "heavy_industry"
   }
 };
@@ -107,10 +120,10 @@ export const TECH_DEFS: Record<TechId, TechDef> = {
     id: "agriculture",
     label: "Agriculture",
     description:
-      "Better land management. Unlocks the Lumber Mill (forest yields) and Granary (boosts adjacent farms).",
+      "Better land management. Unlocks the Granary, which adds a strong potato bonus to every adjacent farm.",
     cost: 10,
     prereqs: [],
-    unlocks: ["lumber_mill", "granary"]
+    unlocks: ["granary"]
   },
   industry: {
     id: "industry",
@@ -149,6 +162,18 @@ export const ROAD_COST = 2;
 
 export function costFor(def: BuildingDef, currentCount: number): number {
   return Math.floor(def.baseCost * Math.pow(def.costGrowth, currentCount));
+}
+
+/** True iff the given resource map covers every entry in materialCost. */
+export function canAffordMaterials(
+  def: BuildingDef,
+  resources: Record<string, number>
+): boolean {
+  if (!def.materialCost) return true;
+  for (const [mat, amt] of Object.entries(def.materialCost)) {
+    if ((resources[mat] ?? 0) < (amt ?? 0)) return false;
+  }
+  return true;
 }
 
 function countNeighbor(neighbors: TerrainType[], kind: TerrainType): number {
