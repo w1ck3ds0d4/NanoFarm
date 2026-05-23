@@ -32,7 +32,8 @@
     "typecheck": "tsc -p . --noEmit",
     "build": "pnpm --filter @nanofarm/app build && pnpm compile",
     "bundle-dist": "node ./scripts/bundle-dist.mjs",
-    "package": "pnpm build && pnpm bundle-dist && vsce package --no-dependencies"
+    "package": "pnpm build && pnpm bundle-dist && vsce package --no-dependencies",
+    "reinstall": "pnpm package && code --install-extension nanofarm-extension-0.1.0.vsix --force"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
