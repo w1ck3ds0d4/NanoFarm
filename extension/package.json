@@ -1,20 +1,34 @@
 {
   "name": "nanofarm-extension",
   "displayName": "NanoFarm",
-  "description": "Tiny pixel-art idle game that lives in a VS Code tab.",
+  "description": "Tiny SimCity-style idle game in a VS Code tab. Build a city, run a real production chain, climb a tech tree, and let your Claude Code tool calls feed bonus materials.",
   "version": "0.1.0",
   "private": true,
   "publisher": "w1ck3ds0d4",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
+  "homepage": "https://github.com/w1ck3ds0d4/NanoFarm#readme",
+  "bugs": {
+    "url": "https://github.com/w1ck3ds0d4/NanoFarm/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/w1ck3ds0d4/NanoFarm.git",
     "directory": "extension"
   },
+  "author": "w1ck3ds0d4 <daniel.svs@outlook.com>",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": ["Other"],
+  "keywords": [
+    "game",
+    "idle",
+    "city-builder",
+    "simulation",
+    "pixijs",
+    "claude",
+    "claude-code"
+  ],
   "main": "./out/extension.js",
   "activationEvents": [],
   "contributes": {

@@ -2,6 +2,18 @@
   "name": "@nanofarm/app",
   "version": "0.1.0",
   "private": true,
+  "description": "NanoFarm web app - PixiJS-rendered isometric city game with a full SimCity-style economy. Runs standalone via Vite or bundled inside the NanoFarm VS Code extension.",
+  "homepage": "https://github.com/w1ck3ds0d4/NanoFarm#readme",
+  "bugs": {
+    "url": "https://github.com/w1ck3ds0d4/NanoFarm/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/w1ck3ds0d4/NanoFarm.git",
+    "directory": "app"
+  },
+  "author": "w1ck3ds0d4 <daniel.svs@outlook.com>",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "scripts": {
     "dev": "vite",

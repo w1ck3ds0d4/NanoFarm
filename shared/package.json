@@ -2,6 +2,15 @@
   "name": "@nanofarm/shared",
   "version": "0.1.0",
   "private": true,
+  "description": "Cross-package types for NanoFarm: GameState, ResourceMap, BuildingId, MapState, SaveBlob, hook record, webview <-> extension envelopes.",
+  "homepage": "https://github.com/w1ck3ds0d4/NanoFarm#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/w1ck3ds0d4/NanoFarm.git",
+    "directory": "shared"
+  },
+  "author": "w1ck3ds0d4 <daniel.svs@outlook.com>",
+  "license": "AGPL-3.0-or-later",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
