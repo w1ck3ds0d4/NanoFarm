@@ -1,0 +1,38 @@
+{
+  "name": "@nanofarm/extension",
+  "displayName": "NanoFarm",
+  "description": "Tiny pixel-art idle game that lives in a VS Code tab.",
+  "version": "0.1.0",
+  "private": true,
+  "publisher": "w1ck3ds0d4",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Other"],
+  "main": "./out/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "nanofarm.open",
+        "title": "NanoFarm: Open Game",
+        "category": "NanoFarm"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -p . -w",
+    "typecheck": "tsc -p . --noEmit",
+    "build": "pnpm --filter @nanofarm/app build && pnpm compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "typescript": "~5.6.3"
+  },
+  "dependencies": {
+    "@nanofarm/shared": "workspace:*"
+  }
+}

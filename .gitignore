@@ -18,6 +18,8 @@ dist/
 .vscode/*
 !.vscode/settings.json
 !.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
 
 # claude code preview launch config (per-dev tooling)
 .claude/
