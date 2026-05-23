@@ -9,6 +9,10 @@ interface Props {
   onResetZoom: () => void;
   onRecenter: () => void;
   onNewRun: () => void;
+  onSaveNow: () => void;
+  /** Wall-clock timestamp of the last successful save, or null if
+   * no save has happened yet this session. */
+  lastSavedAt: number | null;
 }
 
 export function SettingsPanel({
@@ -17,7 +21,9 @@ export function SettingsPanel({
   onClose,
   onResetZoom,
   onRecenter,
-  onNewRun
+  onNewRun,
+  onSaveNow,
+  lastSavedAt
 }: Props) {
   // Inline confirm flow because the VS Code webview disables
   // window.confirm/alert/prompt outright (returns undefined, no
@@ -45,6 +51,12 @@ export function SettingsPanel({
             reset zoom
           </button>
           <span className="sp-hint">restore 1.0x</span>
+        </div>
+        <div className="sp-row">
+          <button className="sp-btn" onClick={onSaveNow}>
+            save now
+          </button>
+          <span className="sp-hint">{formatLastSaved(lastSavedAt)}</span>
         </div>
         <div className="sp-row">
           {hookStatus === "connected" && (
@@ -105,4 +117,13 @@ export function SettingsPanel({
       </div>
     </div>
   );
+}
+
+function formatLastSaved(ts: number | null): string {
+  if (!ts) return "auto-saves every 5s";
+  const ageSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (ageSec < 5) return "just saved";
+  if (ageSec < 60) return `saved ${ageSec}s ago`;
+  const min = Math.floor(ageSec / 60);
+  return `saved ${min}m ago`;
 }

@@ -7,11 +7,17 @@ const SAVE_INTERVAL_MS = 5000;
 export class SaveLoop {
   private adapter: StorageAdapter;
   private getState: () => GameState;
+  private onSaved?: (savedAt: number) => void;
   private timer: number | null = null;
 
-  constructor(adapter: StorageAdapter, getState: () => GameState) {
+  constructor(
+    adapter: StorageAdapter,
+    getState: () => GameState,
+    onSaved?: (savedAt: number) => void,
+  ) {
     this.adapter = adapter;
     this.getState = getState;
+    this.onSaved = onSaved;
   }
 
   start(): void {
@@ -33,12 +39,14 @@ export class SaveLoop {
   }
 
   async persist(): Promise<void> {
+    const savedAt = Date.now();
     const blob: SaveBlob = {
       version: CURRENT_SAVE_VERSION,
-      savedAt: Date.now(),
+      savedAt,
       state: this.getState()
     };
     await this.adapter.save(blob);
+    this.onSaved?.(savedAt);
   }
 
   private onVisibility = (): void => {

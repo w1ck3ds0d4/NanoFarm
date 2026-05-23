@@ -61,6 +61,8 @@ export function App() {
   const [hookStatus, setHookStatus] = useState<HookStatus>(
     drainerRef.current.isAvailable() ? "disconnected" : "unavailable"
   );
+  const saverRef = useRef<SaveLoop | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
   const [selected, setSelected] = useState<Placeable | null>(null);
   // Single panel state - only one HUD panel / overlay is ever open
   // at a time, so toggles behave like a tab bar instead of stacking
@@ -137,12 +139,18 @@ export function App() {
       dispatch,
       drainer: drainerRef.current
     });
-    const saver = new SaveLoop(adapterRef.current, () => stateRef.current);
+    const saver = new SaveLoop(
+      adapterRef.current,
+      () => stateRef.current,
+      (savedAt) => setLastSavedAt(savedAt),
+    );
+    saverRef.current = saver;
     game.start();
     saver.start();
     return () => {
       game.stop();
       saver.stop();
+      saverRef.current = null;
     };
   }, [booted]);
 
@@ -403,6 +411,10 @@ export function App() {
             hookStatus={hookStatus}
             onConnectHook={onConnectHook}
             onClose={() => setOpenPanel(null)}
+            onSaveNow={() => {
+              void saverRef.current?.persist();
+            }}
+            lastSavedAt={lastSavedAt}
             onResetZoom={() => setZoom(DEFAULT_ZOOM)}
             onRecenter={() => {
               recenterOnMain();
