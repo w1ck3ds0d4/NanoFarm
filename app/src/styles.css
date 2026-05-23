@@ -416,6 +416,7 @@ button:disabled {
 /* ============ BUILD PANEL ============ */
 .build-panel {
   position: absolute;
+  top: 36px;
   bottom: 34px;
   right: 8px;
   background: rgba(16, 20, 10, 0.96);
@@ -424,6 +425,8 @@ button:disabled {
   z-index: 5;
   width: 420px;
   max-width: calc(100% - 16px);
+  display: flex;
+  flex-direction: column;
 }
 
 .bp-header {
@@ -497,7 +500,8 @@ button:disabled {
   display: grid;
   grid-template-columns: 100px 1fr;
   gap: 8px;
-  min-height: 240px;
+  flex: 1;
+  min-height: 0;
 }
 
 .bp-sidebar {
@@ -537,7 +541,62 @@ button:disabled {
   flex-direction: column;
   gap: 4px;
   overflow-y: auto;
-  max-height: 280px;
+  min-height: 0;
+}
+
+/* Game-themed scrollbar: dark olive track, lime thumb. Scoped to
+   the in-canvas panels so we don't fight with VS Code's own
+   scrollbars elsewhere in the host UI. */
+.bp-cards,
+.research-panel,
+.needs-panel,
+.world-panel,
+.settings-panel {
+  scrollbar-width: thin;
+  scrollbar-color: #557722 #1a2010;
+}
+
+.bp-cards::-webkit-scrollbar,
+.research-panel::-webkit-scrollbar,
+.needs-panel::-webkit-scrollbar,
+.world-panel::-webkit-scrollbar,
+.settings-panel::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.bp-cards::-webkit-scrollbar-track,
+.research-panel::-webkit-scrollbar-track,
+.needs-panel::-webkit-scrollbar-track,
+.world-panel::-webkit-scrollbar-track,
+.settings-panel::-webkit-scrollbar-track {
+  background: #10140a;
+  border: 1px solid #2a3015;
+}
+
+.bp-cards::-webkit-scrollbar-thumb,
+.research-panel::-webkit-scrollbar-thumb,
+.needs-panel::-webkit-scrollbar-thumb,
+.world-panel::-webkit-scrollbar-thumb,
+.settings-panel::-webkit-scrollbar-thumb {
+  background: #3a5018;
+  border: 1px solid #557722;
+}
+
+.bp-cards::-webkit-scrollbar-thumb:hover,
+.research-panel::-webkit-scrollbar-thumb:hover,
+.needs-panel::-webkit-scrollbar-thumb:hover,
+.world-panel::-webkit-scrollbar-thumb:hover,
+.settings-panel::-webkit-scrollbar-thumb:hover {
+  background: #88aa33;
+}
+
+.bp-cards::-webkit-scrollbar-corner,
+.research-panel::-webkit-scrollbar-corner,
+.needs-panel::-webkit-scrollbar-corner,
+.world-panel::-webkit-scrollbar-corner,
+.settings-panel::-webkit-scrollbar-corner {
+  background: #10140a;
 }
 
 .bp-card {
