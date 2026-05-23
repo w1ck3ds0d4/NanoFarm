@@ -91,13 +91,13 @@ export function SettingsPanel({
                   onNewRun();
                 }}
               >
-                yes, wipe
+                yes
               </button>
               <button
                 className="sp-btn"
                 onClick={() => setConfirmingNewRun(false)}
               >
-                cancel
+                no
               </button>
             </div>
           </div>

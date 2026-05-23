@@ -93,13 +93,13 @@ export function WorldMapPanel({ state, onTravel, onClose }: Props) {
                             onTravel(id);
                           }}
                         >
-                          travel
+                          yes
                         </button>
                         <button
                           className="wm-btn"
                           onClick={() => setConfirming(null)}
                         >
-                          cancel
+                          no
                         </button>
                       </div>
                     </div>
