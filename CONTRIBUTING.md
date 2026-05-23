@@ -39,15 +39,17 @@ pnpm preview
 pnpm typecheck
 ```
 
-When the extension package lands (phase 3) it will add:
+The VS Code extension adds:
 
 ```bash
-# build the vs code extension (consumes app/dist/)
-pnpm --filter @nanofarm/extension build
+# build + package the extension into a .vsix
+pnpm --filter nanofarm-extension package
 
-# package the extension into a .vsix
-pnpm --filter @nanofarm/extension package
+# build + package + install into the current VS Code in one shot
+pnpm --filter nanofarm-extension reinstall
 ```
+
+After `reinstall`, reload your VS Code window and re-open via `Ctrl+Shift+P` → `NanoFarm: Open Game`.
 
 ## Project layout
 
@@ -55,7 +57,7 @@ The repo is a pnpm workspace with three packages:
 
 - `app/` - the standalone Vite + React + PixiJS game.
 - `shared/` - cross-package types (`GameState`, `MapState`, `SaveBlob`, hook record shape, message envelopes).
-- `extension/` - the VS Code extension wrapper (planned, phase 3).
+- `extension/` - the VS Code extension wrapper (package name `nanofarm-extension`).
 
 Documentation lives at the repo root: [README.md](README.md), [ARCHITECTURE.md](ARCHITECTURE.md), [HOW_IT_WORKS.md](HOW_IT_WORKS.md), [ROADMAP.md](ROADMAP.md), [SECURITY.md](SECURITY.md), [COMMERCIAL.md](COMMERCIAL.md), [CHANGELOG.md](CHANGELOG.md).
 

@@ -1,116 +1,197 @@
 # How It Works
 
-NanoFarm is a tiny pixel-art idle game where you grow a civilization on a 150x150 iso map. You drop a main building, chain roads out from it, place farms and mines adjacent to the road network, and watch resources tick up. Connected buildings produce; disconnected ones sit idle and dim. With Claude Code wired up, every tool call your coding session makes feeds bonus materials into the game.
+NanoFarm is a SimCity-style idle game where you grow a city on a 150x150 iso map. You place a main building, run roads, set up a production chain (raw materials → intermediates → consumer goods → credits via market sales), keep residents fed and watered and employed, and eventually research your way through a tech tree until you can build the Wonder and prestige into a new city.
 
-This doc describes the planned player experience. Phase 1 ships the core loop (procgen world, main + roads + connectivity, materials, HUD); later layers (combat, multi-planet, prestige) are pending.
+Connected buildings produce; disconnected ones sit idle and dim. Buildings that lack staff or utilities scale down their output. Buildings with optional tool boosts get a +60% bump when tools are in stock. With Claude Code wired up, every tool call your coding session makes feeds bonus raw materials into the city.
 
 ## What you do, in one paragraph
 
-You start with 10 credits and a procgen 150x150 map. Open the BUILD panel, pick "Main Building", click an open tile to place it. Pick "Road" and chain a few tiles out from main. Pick "Farm" and place one adjacent to a road or to main itself; it starts producing credits and potatoes immediately. Drag the map to scout for forest patches (boosts wood) and mine deposits (boosts iron). Place a mine once you have 100 credits. Repeat. Wire up the Claude Code hook if you want your coding to feed the city.
+You start with 120 credits, 15 wood, 15 food, and a procgen 150x150 map. Place the Main Building, drop a Farm (10 cr), build a House (30 cr + 2 wood), then a School (60 cr + 2 wood). The Farm produces food from the free water baseline (5 supply). Residents move in (capacity 10 per house) and start paying rent. The School converts idle residents into workers. Once you have your first worker, place a Lumber Mill in a forest — it produces wood. From there: Mine → iron, Workshop → tools (boosts mills/mines), Academy → researchers, Lab → research points, tech tree → unlocks Factory (goods), Market (sells goods for big credits), Power Plant, eventually Wonder.
 
 ## Resources
 
-Top-level tiers:
+Eight stockpiled resources:
 
-- **Credits** - basic currency. Earned by farms. Spent on everything in the early game. Starts at 10 so you can place a first farm right away.
-- **Materials** - displayed as a single sum in the resource bar; click it to open a pie chart breakdown of the four building materials and food.
-  - **Wood** - from forest tiles adjacent to a farm.
-  - **Iron** - from mines, with a bonus for adjacent `mine_deposit` tiles.
-  - **Stone** - from mines, with a bonus for adjacent `mountain` tiles.
-  - **Water** - from water tiles adjacent to a farm.
-  - **Potatoes** - farms produce these to feed the population (population mechanic coming in a later phase). Adjacent water boosts the yield.
-- **Research** - gated tier. Produced by labs once research is unlocked (phase 2).
-- **AI tokens** - not a stored resource; every Claude Code tool call becomes +0.25 of each building material via the hook drainer.
+- **Credits** — currency. Earned by **markets selling goods** and **residents paying rent**. Spent on construction and ongoing upkeep. Main building provides a small `+0.5/s` baseline so an empty city always has a trickle.
+- **Research** — long-term progression. Produced by labs (staffed by researchers). Spent on tech tree nodes.
+- **Wood** — raw material. From Lumber Mills. Spent on most construction.
+- **Iron** — raw material. From Mines. Spent on industrial / late-game construction.
+- **Stone** — raw material. From Mines (small byproduct) or Quarries (specialist). Spent on industrial construction.
+- **Food** — consumed by residents (0.02/sec each). Produced by Farms and Granaries. Empty stockpile → unhappy residents → they leave.
+- **Goods** — manufactured. Produced by Factories from wood + iron. Consumed by Markets (turned into credits) and Residents (consumed at 0.01/sec each).
+- **Tools** — manufactured. Produced by Workshops from stone + iron. Optional boost (+60%) for Mines / Quarries / Lumber Mills when in stock.
 
-Later phases introduce **influence** (nation tier, earned by population growth and event outcomes) and **starseed** (prestige currency, earned by settling a new planet).
+Two **services** that are NOT stockpiled (computed live each tick):
 
-## Buildings
+- **Power** — supplied by Windmills, Power Plants, and a free baseline (4). Demanded by every industrial building + every resident (0.02/sec each).
+- **Water** — supplied by Wells, Water Pumps, and a free baseline (5). Demanded by Farms + every resident (0.02/sec each).
 
-Phase 1 buildings:
+When demand exceeds supply, every consumer scales output by `supply / demand`. So a city short on power has every industrial building running at the same fraction.
 
-- **Main Building** - the heart of your civilization. Free, max one per game. Required for connectivity. Visually distinct (taller, gold roof).
-- **Farm** - produces 1 credit + 0.5 potatoes per second baseline. +0.15 wood per adjacent forest tile, +0.15 water + 0.2 potatoes per adjacent water tile.
-- **Mine** - produces 0.25 iron + 0.25 stone per second baseline. +0.4 iron per adjacent `mine_deposit`, +0.4 stone per adjacent `mountain`. Unlocked once you have 50 credits.
-- **Road** - not a building; a flat paved tile that extends the connectivity network. 2 credits each. Place chains of them to reach distant ore and forest patches.
+## Buildings (17 total)
 
-Phase 2 adds **lab** (research), **barracks** (military units for auto-resolve combat), and **market** (trade resources at fixed rates).
+### Core
+- **Main Building** — anchor + civic income (+0.5 cr/s, upkeep 0.1). Free, max 1.
+- **House** — 30 cr + 2 wood. Provides 10 pop capacity. No staff. Residents consume food/water/power/goods and pay rent.
+- **Road** — free. Mandatory connectivity from main; non-connected buildings stop producing.
 
-## The world map
+### Harvest (raw materials)
+- **Farm** — 10 cr. Produces 0.6 food/s. Needs 1 water. Granary neighbors give +50% food each (capped +200%).
+- **Lumber Mill** — 50 cr + 2 wood, 1 worker, 1 power. Produces 0.5 wood/s. Tools boost +60%.
+- **Mine** — 100 cr + 3 wood, 2 workers, 1 power. Produces 0.4 iron + 0.1 stone (byproduct) per sec. Tools boost +60%.
+- **Quarry** — 150 cr + 5 wood, 2 workers, 1 power. Produces 0.5 stone/s. Tools boost +60%. Requires Industry tech.
+- **Well** — 60 cr + 3 wood, 1 worker. Supplies 4 water/s. Early-game water source.
+- **Water Pump** — 90 cr + 2 wood + 1 iron, 1 worker, 2 power. Supplies 8 water/s. Requires Engineering tech.
+- **Granary** — 80 cr + 5 wood, 1 worker. Produces 0.2 food/s + buffs adjacent farms. Requires Agriculture tech.
 
-Each new game gets a fresh 150x150 procgen map generated from a saved seed. Terrain types via value noise:
+### Industry
+- **Windmill** — 120 cr + 5 wood, no staff. Supplies 6 power/s. Early-game power source.
+- **Workshop** — 200 cr + 4 wood + 2 iron, 2 workers, 1 power. Consumes 0.3 stone + 0.3 iron per sec, produces 0.3 tools/s. Requires Industry tech.
+- **Factory** — 400 cr + 4 wood + 6 stone + 4 iron, 4 workers, 2 power. Consumes 0.5 wood + 0.5 iron per sec, produces 0.6 goods/s. Requires Heavy Industry tech.
+- **Power Plant** — 600 cr + 4 wood + 10 stone + 6 iron (2x2 footprint), 4 workers. Supplies 20 power/s. Requires Heavy Industry tech.
 
-- **Grass** - default buildable.
-- **Sand** - shoreline. Buildable.
-- **Water** - lakes, rivers, and sea. Not buildable. Boosts adjacent farm output.
-- **Forest** - dense clusters. Not buildable. Boosts adjacent farm output (wood).
-- **Mountain** - rocky highlands. Not buildable. Boosts adjacent mine output (stone).
-- **Mine deposit** - rare grass tiles with visible ore. Not buildable. Heavy boost to adjacent mine output (iron).
+### Commerce
+- **Market** — 200 cr + 4 wood, 2 workers, 1 power. Consumes 1.0 goods/s, produces 6.0 credits/s. Requires Commerce tech. **Primary income source for a developed city.**
 
-The viewport shows ~30 tiles wide of the map at default zoom. Drag the canvas to pan. Scroll the wheel to zoom from 0.6x (overview) up to 3.0x (single-tile detail). Buildings are sorted back-to-front by `x + y` so iso depth reads correctly.
+### People (training)
+- **School** — 60 cr + 2 wood. Trains 0.2 workers/s from idle pop.
+- **Academy** — 150 cr + 4 wood. Trains 0.15 researchers/s.
+- **Barracks** — 120 cr + 3 wood + 2 iron. Trains 0.15 military/s. (Military isn't consumed by anything yet — placeholder for future combat.)
+
+### Tech
+- **Research Lab** — 120 cr + 4 wood, 1 **researcher**, 1 power. Produces 0.15 research/s (+50% with Education tech).
+- **Wonder** — 5000 cr + 20 wood + 40 stone + 30 iron (3x3 footprint, max 1). Produces 0.5 research + 2 credits per sec. **Grants +5 legacy on completion.**
+
+## Tech tree (7 nodes)
+
+Research points are spent in the **Research panel** (click the RS HUD cell):
+
+| Tech | Cost (rp) | Prereqs | Unlocks / effect |
+|---|---|---|---|
+| Agriculture | 10 | — | Granary |
+| Industry | 25 | — | Quarry + Workshop |
+| Engineering | 30 | — | Water Pump |
+| Commerce | 40 | Agriculture | Market |
+| Metallurgy | 80 | Industry | (no building — gates Heavy Industry) |
+| Heavy Industry | 120 | Industry + Metallurgy | Power Plant + Factory + Wonder |
+| Education | 60 | Agriculture | +50% Research Lab output (passive) |
+
+## Population and happiness
+
+Residents live in Houses (10 capacity each). They split across four job buckets:
+
+- **idle** — newly grown, no training. Don't staff anything.
+- **worker** — staff most buildings.
+- **researcher** — staff labs. Trained by academies (not schools).
+- **military** — trained by barracks. No use yet.
+
+Per resident, per second:
+- Eat 0.02 food (stockpile drain)
+- Use 0.02 water (adds to citywide water demand)
+- Use 0.02 power (adds to citywide power demand)
+- Buy 0.01 goods (stockpile drain)
+- Want a job (worker/researcher slot)
+
+**Happiness** is computed each tick:
+- Survival = (food ratio + water ratio) / 2, weighted 80%
+- Comfort = (power ratio + goods ratio + jobs ratio) / 3, weighted 20%
+- Empty city = 100
+
+Above 70 → city grows toward house capacity. Below 50 → residents leave. Rent scales linearly with happiness, floored at 30% (even angry residents pay something).
+
+Click the `HPY` HUD cell to open the **needs panel** for a per-need breakdown with progress bars.
+
+## The world map and prestige
+
+Click the **map** button in the bottom-left to open the world map. Eight cities laid out as a hex grid:
+
+```
+        AETHER SPIRE
+       /            \
+   SKYHOLD       IRON REACH
+        \         /
+        STONEHAVEN
+        /          \
+   FROSTPEAK     PINEWOOD
+        \         /
+       VERDANT VALLEY (starter)
+            |
+         GREENMARSH
+```
+
+Each city has a **milestone** (e.g. Verdant Valley = "house 50 residents", Iron Reach = "build 3 factories"). Meeting it lets you **travel** to a connected city, which:
+
+1. Wipes your current city's map + stockpiles
+2. Keeps your tech tree (knowledge persists)
+3. Awards **+1 legacy** for settling the source city
+4. Awards **+5 legacy** if you completed a Wonder before traveling
+
+Legacy = **+5% production per point**, applied citywide, permanently. The intended long loop is: settle Verdant Valley → unlock + build through Wonder → travel to Stonehaven → repeat.
+
+## Building hover + inspect
+
+- **Hover** any tile of a placed building → a thin white outline wraps the full footprint, and a tooltip shows the building's name + current production rate (scaled by run ratio).
+- **Click** when nothing is selected → the **Inspector** opens. Shows current run ratio (e.g. "running at 60% — short on workers"), staffing requirement, utility needs, every input/output flow line, the optional tool boost status, and a pause button + a remove button with refund preview.
+
+The placement preview (when a building is selected) renders the same footprint outline: **green** if all tiles are buildable + free, **red** if any tile is blocked.
+
+## Production chain (closes properly)
+
+```
+forest --> Lumber Mill --> wood --+
+                                  +--> Factory --> goods --> Market --> credits
+ore     --> Mine ---------> iron -+                            ^
+                          +iron --> Workshop --> tools --> (boosts harvest)
+mountain --> Quarry  --> stone --+
+
+field    --> Farm   --> food   --> residents
+spring   --> Well/Pump --> water-service --> farms + residents
+wind     --> Mill/Plant --> power-service --> industry + residents
+
+residents --> rent --> credits
+```
+
+The two terminal outputs are **rent** (from happy residents) and **market sales** (goods → credits). Without markets, your only income is rent — fine for a tiny city, insufficient for a large one.
 
 ## Roads and connectivity
 
-The road system is the spine of the city. The rules:
+1. The main building must exist before any other building functions.
+2. A road tile is "reachable" if it touches main or another reachable road.
+3. A building is "connected" if **any** footprint tile touches main, a reachable road, or another placed building.
+4. Connected buildings function; disconnected buildings render at 45% opacity and produce zero.
+5. Multi-tile buildings (Power Plant, Wonder) are treated uniformly — if any footprint tile is adjacent to the network, the whole building is connected.
 
-1. The main building must exist before any other building produces resources.
-2. A road tile is "reachable" if it is orthogonally adjacent to the main building, or to another reachable road tile.
-3. A farm or mine is "active" if it is orthogonally adjacent to the main building, or to a reachable road tile.
-4. Active buildings produce normally. Inactive buildings render at 45% opacity and produce zero.
-
-Connectivity is recomputed by BFS each tick. Placing a road that bridges two clusters reactivates all the buildings in the newly reachable subgraph instantly.
+Connectivity is recomputed each tick by BFS. Bridging two clusters reactivates everything in the merged subgraph instantly.
 
 ## The Claude Code hook
 
-If you install the hook (see [hooks/INSTALL.md](hooks/INSTALL.md)), every tool call your Claude Code session makes is recorded to a small file in your home directory. The game reads that file every second and converts new entries into bonus materials, split evenly across wood, iron, stone, and water.
+If you install the hook (see [hooks/INSTALL.md](hooks/INSTALL.md)), every tool call your Claude Code session makes is recorded to `~/.nanofarm/tokens.jsonl`. The game reads that file every second and converts each line into a basket of raw materials split across wood / iron / stone / food.
 
-The bonus is **additive**. Without the hook, the game plays as a regular idle clicker; clicks and idle buildings carry you. With the hook installed and an active coding session, your material accrual rate goes up noticeably. Heavy sessions (lots of edits, reads, bash commands) can outpace passive income by several multiples.
+The bonus is **additive**. A typical idle city pulls in a steady trickle from production; the hook bumps that rate proportionally to how much you're actually coding.
 
-The hook does not read your code, your tool inputs, or your tool outputs. It only counts that a tool call happened.
+**In the VS Code extension**: the file is read by the extension's Node process and shipped to the webview over `postMessage`. Zero player setup beyond installing the hook script.
 
-A small "+N materials from coding" floater appears in the corner each time the drainer awards a batch.
+**In standalone Chromium**: you click "connect hook" in Settings, point the file picker at `~/.nanofarm/tokens.jsonl`, and the browser remembers the choice via the File System Access API.
 
-## Offline progress
+The hook does not read your code, your tool inputs, or your tool outputs. It writes one record per tool call: `{ t: <ms>, tool: "<name>", v: 1 }`.
 
-Planned for phase 4. Today the game pauses when the tab is closed. Phase 4 will:
+## Auto-save
 
-- Write a wall-clock timestamp on every save.
-- On reopen, compute elapsed time and replay it against the last-saved rates, capped at 8 hours.
-- Show a "while you were away" banner with the totals.
-- Pick up queued Claude Code tool calls from the hook file on the next drainer pass.
+The game writes the full state to storage every 5 seconds, plus on tab hide / page unload. Settings → "save now" forces a write. The "saved 12s ago" indicator next to the button updates live so you can see the heartbeat.
 
-## The standalone web app
+Save format includes the app version (read from `package.json` at build time) so future bug reports can identify which build wrote a save.
 
-Run from a built `dist/index.html` or via the Vite dev server. The save lives in `localStorage["nanofarm.save"]`. Clearing browser data wipes the save. Export / import buttons (planned) download and restore the save as JSON.
+- **VS Code extension**: save lives in `extensionContext.workspaceState` — per-workspace, persistent across reloads + extension reinstalls
+- **Standalone**: save lives in `localStorage["nanofarm.save"]` — per-browser-origin, wiped when you clear site data
 
-The Claude Code hook writes to `~/.nanofarm/tokens.jsonl` (or `%USERPROFILE%\.nanofarm\tokens.jsonl` on Windows). The browser uses the File System Access API to read it; you grant permission once via a file picker and the browser remembers the choice across sessions.
-
-## The VS Code extension
-
-Phase 3. The extension contributes a single command:
-
-- `NanoFarm: Open Panel` - opens a `WebviewPanel` and loads the game.
-
-The panel can be dragged to a side group so it stays open next to your editor. Closing the panel does not delete your save; the save lives in `extensionContext.workspaceState`. A per-workspace save means each project has its own farm; a settings toggle lets you switch to `globalState` so one farm follows you across workspaces.
-
-The hook integration is the same in both surfaces. The file path does not change.
-
-## The long loop
-
-NanoFarm grows in layers. Each layer unlocks once the one below it is established:
-
-1. **City** (phase 1, shipped) - one tile grid, main building, roads, farms + mines, terrain bonuses.
-2. **Nation** (phase 2-3) - multiple cities, neighbors, diplomacy, auto-resolve skirmishes, research tree, broader event chains.
-3. **Planet** (late phase 3) - one planet fully built out, weather, terraforming, late-game events.
-4. **Multi-planet** (phase 4) - space discovery, then colonization. **Settling a new planet is the prestige reset.** You spend the current planet's progress to earn starseed currency, then start over on a new planet with a permanent multiplier.
-
-The prestige loop is the long-term motivator. Each run pushes a little further in less time.
+Save version is currently 2. Future schema changes that can't auto-migrate will reset the city (the v1 → v2 jump did exactly that when the SimCity economy landed).
 
 ## What NanoFarm does not do
 
-- No leaderboards, no online ranking, no friends list.
+- No leaderboards, ranking, social features.
 - No microtransactions, no ads, no cosmetic shop.
-- No cloud sync. The export / import JSON is the only cross-device path.
-- No telemetry. NanoFarm makes no network calls at runtime.
-- No anti-cheat. It is your save; do whatever you want with it.
-- No tactical combat. Wars are stat comparisons, not battle maps.
-- No reading of your code or tool I/O by the hook. Only counts.
+- No cloud sync. Local-only.
+- No telemetry. Zero network calls at runtime.
+- No anti-cheat. It's your save; edit it however you want.
+- No tactical combat (military is currently vestigial — wars, if added, will be auto-resolved stat comparisons).
+- No reading of your code or tool I/O by the hook. Counts only.

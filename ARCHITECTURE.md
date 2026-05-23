@@ -1,59 +1,75 @@
 # Architecture
 
-NanoFarm is a tiny pixel-art idle game with two delivery surfaces off the same source: a standalone Vite web app and a VS Code extension that hosts the same bundle in a `WebviewPanel`. There is no server. Game state is computed entirely in the browser / webview and persisted locally.
+NanoFarm is a SimCity-style idle game with two delivery surfaces off the same source: a VS Code extension that hosts the game in a `WebviewPanel`, and a standalone Vite web app. There is no server. Game state is computed entirely in the browser / webview and persisted locally.
 
-This document describes the shipped phase 1 shape plus the extension layer that is still pending.
+This document describes the current shipped shape.
 
 ## Tech stack
 
-- **Game**: TypeScript + React 19, Vite 6 for dev server and bundling.
-- **Render**: [PixiJS v8](https://pixijs.com/) on a canvas for the iso tile grid and pixel-art sprites. React owns the UI chrome (HUD overlays, dialogs); the two coexist with the React app rendering above the PixiJS canvas via absolute positioning.
-- **Extension** (phase 3): TypeScript, the `vscode` extension API, esbuild or `tsc` for the host module.
-- **Shared types**: a small `shared/` package re-exported from both sides.
-- **Claude Code hook**: a tiny shell / PowerShell script appends one line per tool call to a JSONL file. The game tick reads and drains that file via the File System Access API.
-- **Package manager**: pnpm workspaces (one lockfile, three packages).
-- No backend, no database, no auth, no network calls at runtime.
+- **Game**: TypeScript + React 19, Vite 6 for dev server and bundling
+- **Render**: [PixiJS v8](https://pixijs.com/) on a canvas for the iso tile grid and pixel-art sprites. React owns the UI chrome (HUD overlays, dialogs); the two coexist with the React app rendering above the PixiJS canvas via absolute positioning. Pixi v8 needs `pixi.js/unsafe-eval` imported eagerly in `main.tsx` so the strict webview CSP doesn't kill shader codegen
+- **Extension**: TypeScript + the `vscode` API. Packaged as a VSIX via `@vscode/vsce`
+- **Shared types**: a small `shared/` package re-exported from both sides
+- **Claude Code hook**: a tiny shell / PowerShell script appends one line per tool call to a JSONL file. The game reads + truncates that file every second (via the File System Access API standalone, via the extension's Node fs in VS Code)
+- **Package manager**: pnpm workspaces (one lockfile, three packages)
+- No backend, no database, no auth, no network calls at runtime
 
 ## Top-level layout
 
 ```
 NanoFarm/
-  app/                          standalone game (vite + react + ts + pixijs)
+  app/                          standalone game
     src/
-      main.tsx                  entry, mounts <App />
-      App.tsx                   game shell, HUD overlays
+      main.tsx                  entry; imports "pixi.js/unsafe-eval" first
+      App.tsx                   game shell, HUD, single-panel routing
+      version.ts                build-time APP_VERSION (Vite define)
       game/
-        state.ts                GameState shape, reducer, computeProduction
-        loop.ts                 raf tick: accrual, hook drain, event check
-        save.ts                 serialize, migrate, persist
-        buildings.ts            building definitions, terrain bonuses
-        events.ts               event-decision definitions (currently empty)
-        connectivity.ts         bfs from main through roads
-        tokens.ts               claude code hook drainer
+        state.ts                GameState shape + reducer
+        simulate.ts             per-tick simulation engine
+        loop.ts                 raf tick: simulateTick + hook drain + events
+        save.ts                 SaveLoop w/ onSaved callback, loadOrInit
+        buildings.ts            BuildingDef + BuildingOps for 17 buildings,
+                                tech tree, POP_DEMAND, baselines, costs
+        cities.ts               8-city prestige tree + legacyBonus
+        connectivity.ts         BFS from main, multi-tile aware
+        events.ts               trigger evaluator
+        population.ts           populationCapacity helper
+        tokens.ts               hook drainer with three impls
       pixi/
-        Stage.tsx               react component that hosts the pixi app
-        scene.ts                viewport-aware scene graph + culling
-        tiles.ts                terrain + building draw functions
+        Stage.tsx               React host for the PixiJS canvas
+        scene.ts                viewport-aware scene graph + culling,
+                                hover/selection overlays, footprint draws
+        tiles.ts                terrain + iso building draw, all 17 palettes
       ui/
-        BuildPalette.tsx        placeable picker (main, road, farm, mine)
-        EventDialog.tsx         decision popup (unused in phase 1)
-        MaterialsOverlay.tsx    floating pie chart over the canvas
+        BuildPalette.tsx        sidebar-tabbed card grid w/ ops summary
+        BuildingInspector.tsx   run ratio, bottleneck label, pause, flows
+        BuildingTooltip.tsx     hover tooltip
+        MaterialsOverlay.tsx    pie chart + per-resource flow rate
+        PopulationOverlay.tsx   pie chart by job
+        NeedsPanel.tsx          happiness breakdown
+        ResearchPanel.tsx       tech tree + bonus display
+        SettingsPanel.tsx       hook status, save now, recenter, new run
+        WorldMapPanel.tsx       hex grid of 8 cities, milestone, travel
       adapter/
-        storage.ts              storage adapter interface + localStorage impl
-    public/
-      assets/                   pixel-art sprites
+        storage.ts              LocalStorage + VsCodeStorageAdapter
+        vscode.ts               singleton VsCodeApi (single-use per doc)
     index.html
-    vite.config.ts
-    package.json
-  extension/                    vs code extension wrapper (phase 3)
+    vite.config.ts              base: "./" + define __APP_VERSION__
+    package.json                "@nanofarm/app"
+  extension/                    VS Code extension wrapper
+    src/extension.ts            WebviewPanel + storage. + hook. bridges
+    scripts/bundle-dist.mjs     copies app/dist into the VSIX
+    package.json                "nanofarm-extension"
   shared/
     src/
-      state.ts                  GameState, ResourceMap, BuildingId, MapState
-      events.ts                 EventDef, EventChoice, EventTrigger
-      save.ts                   SaveBlob, hydrateMissingFields
-      messages.ts               extension <-> webview message envelopes
-      hook.ts                   HookLine jsonl record shape
-      map.ts                    procgen value noise + terrain helpers
+      state.ts                  GameState, ResourceMap, BuildingId, MapState,
+                                PopulationByJob, ServicesSnapshot, TechId,
+                                CityId, WorldState
+      save.ts                   SaveBlob (v2) + hydrateMissingFields
+      hook.ts                   HookLine
+      messages.ts               webview <-> extension envelopes
+      map.ts                    procgen value noise
+      events.ts                 EventDef + EventChoice + EventTrigger
     package.json
   hooks/
     post-tool-use.sh
@@ -61,106 +77,118 @@ NanoFarm/
     INSTALL.md
   pnpm-workspace.yaml
   package.json
-  README.md
-  ARCHITECTURE.md
-  HOW_IT_WORKS.md
-  ROADMAP.md
-  SECURITY.md
-  CONTRIBUTING.md
-  COMMERCIAL.md
-  CHANGELOG.md
 ```
 
 ## App architecture in layers
 
 The game runs in clear layers, each one calling into the layer below:
 
-1. **State** (`game/state.ts`) - a plain TypeScript object plus a reducer. All gameplay mutations go through reducer actions. No side effects inside reducers.
-2. **Tick** (`game/loop.ts`) - the `requestAnimationFrame` driver. Computes `dt`, accrues resources, drains the hook file, throttles React re-renders.
-3. **Render** (`pixi/scene.ts`) - reads state, paints terrain + roads + buildings. Viewport-culled so only the ~250 tiles in view actually draw.
-4. **UI** (`ui/*.tsx`) - React components for the HUD overlays, build palette, event dialog, materials pie. Drive actions via reducer dispatch.
-5. **Persist** (`game/save.ts` + `adapter/storage.ts`) - writes the current `SaveBlob` through the storage adapter on a 5-second interval and on visibility change.
+1. **State** (`game/state.ts`) — a plain TypeScript object plus a reducer. All gameplay mutations go through reducer actions. No side effects inside reducers.
+2. **Simulation** (`game/simulate.ts`) — pure function `simulateTick(state, connected, dtSec)` returns a `TickResult` with resource deltas, population delta, training conversions, happiness, services snapshot. Replaces the old `computeProduction` + `computePopulation` pair.
+3. **Tick** (`game/loop.ts`) — the `requestAnimationFrame` driver. Computes `dt` (clamped to 1s), calls `simulateTick`, dispatches a single `tick` action, drains the hook file once per second.
+4. **Render** (`pixi/scene.ts`) — reads state, paints terrain + roads + buildings. Viewport-culled. Handles multi-tile footprints, hover outline, selection ring, placement preview.
+5. **UI** (`ui/*.tsx`) — React components for the HUD overlays + panels. Drive actions via reducer dispatch.
+6. **Persist** (`game/save.ts` + `adapter/storage.ts`) — writes the current `SaveBlob` through the storage adapter on a 5-second interval, on visibility change, on page unload, and on demand.
 
-State is the only source of truth. Render and UI both read from it. The tick layer is the only mutator that runs on its own; everything else mutates in response to a user action or a tick event.
+State is the only source of truth. The simulate layer is the only mutator that runs on its own; everything else mutates in response to a user action.
 
-## Game tick loop
+## Per-tick simulation (`game/simulate.ts`)
 
-The loop is fully client-side. There is no server-authoritative state. Cheating your own save is uninteresting and we do not try to prevent it.
+The economy is computed in seven passes per tick:
 
-Model:
+1. **Enumerate live buildings**: connected origin tiles only (multi-tile non-origin tiles are skipped; paused buildings are skipped here but tracked separately for upkeep).
+2. **Staffing demand**: sum worker/researcher/military demand across live buildings, divide by available pop, derive `workerRatio` / `researcherRatio` / `militaryRatio`.
+3. **Power supply / demand**: `FREE_POWER_BASELINE (4)` + every power plant's supply scaled by its staff ratio. Demand = residents × 0.02 + every powered building's need. Compute `powerRatio`.
+4. **Water supply / demand**: `FREE_WATER_BASELINE (5)` + every water pump's supply scaled by both staff AND power ratios (pump needs power). Same for demand. Compute `waterRatio`.
+5. **Input availability**: sum global demand for each consumable resource this tick (scaled by staff + utility ratios), divide by stockpile, derive per-resource `inputRatio`.
+6. **Production + consumption**: for each live building, compute `runRatio = min(staff, power, water, every input ratio)`. Consume inputs × runRatio. Produce outputs × runRatio × `legacyMult` × granaryBonus (for farms) × techMult (e.g. Education → +50% lab) × boostMult (optional tools boost for harvest buildings, drained per tick when active). Apply upkeep × max(0.3, runRatio). Paused buildings pay 50% upkeep.
+7. **People**: resident food + goods consumption (capped at stockpile via inputRatio). Compute happiness from per-need ratios with survival 80% / comfort 20% weighting. Rent = residents × 0.1 × max(0.3, happiness/100) × dtSec. Population grows when happiness ≥ 70 with housing slack; shrinks when < 50; bleeds excess when over capacity. Schools / academies / barracks convert idle into trained jobs.
 
-1. `loop.ts` schedules a `requestAnimationFrame` callback.
-2. Each frame computes `dt = now - lastTickAt`, clamped to 1 second per frame so a thawed background tab does not jump.
-3. Connectivity: `computeConnected(state)` runs a BFS from the main building through orthogonally adjacent road tiles. The returned set is the active building set.
-4. Production: for each placed building, if it is in the connected set, accumulate its per-second rates (including neighbor-terrain bonuses) scaled by `dt`.
-5. Hook drain: once per second (not every frame), call `tokens.drain()`. It reads new lines from the connected `tokens.jsonl`, converts them to bonus materials evenly across `wood / iron / stone / water`, and atomically truncates the file.
-6. React state updates are throttled to about 4 Hz so the DOM does not re-render every frame.
-7. On visibility change or every 5 seconds, `save.ts` writes the current `SaveBlob` through the storage adapter.
+The output `TickResult` carries:
+- `resourceDeltas: Partial<Record<ResourceId, number>>` — signed
+- `populationDelta: number` + `training: { worker, researcher, military }` — applied via `applyPopulationDelta` in the reducer
+- `happiness: number` (0-100)
+- `services: ServiceStatus` (supply/demand/ratio snapshot for HUD)
+- `needs: NeedsStatus` (per-need breakdown)
 
-Building purchases, road placements, and event choices are reducer actions dispatched from UI, not from the tick loop.
+The reducer's `tick` case applies the deltas, persists `services + happiness` on `meta`, and updates an EMA-smoothed `flow: Record<ResourceId, number>` for the HUD ticker.
 
-## Claude Code hook integration
+## Building definitions (`game/buildings.ts`)
 
-The hook is what makes NanoFarm distinctive. It lets real-world Claude Code usage show up in the game.
-
-Flow:
-
-1. The user adds a `PostToolUse` entry to `~/.claude/settings.json` pointing at `hooks/post-tool-use.sh` or `.ps1`. See [hooks/INSTALL.md](hooks/INSTALL.md).
-2. Claude Code fires the hook on every tool call. The hook appends one line to `~/.nanofarm/tokens.jsonl`.
-3. Each line is a `HookLine` JSON record: `{ "t": <ms-since-epoch>, "tool": "<tool-name>", "v": 1 }`.
-4. The game tick calls `tokens.drain()` once per second. Drain reads the file via a `FileSystemFileHandle` (persisted across reloads in IndexedDB), parses each line, sums them, and atomically truncates the file by writing an empty body through a writable stream.
-5. The reducer applies the materials bonus on the next tick. Hook tokens distribute evenly across `wood`, `iron`, `stone`, and `water`.
-
-Shape on disk:
+Each building has a `BuildingOps` block:
 
 ```ts
-// shared/src/hook.ts
-export interface HookLine {
-  t: number;          // ms since epoch
-  tool: string;       // claude code tool name, e.g. "Bash", "Edit", "Read"
-  v: 1;               // schema version
+interface BuildingOps {
+  consumes?: Partial<Record<ResourceId, number>>;   // per-second
+  produces?: Partial<Record<ResourceId, number>>;   // per-second
+  upkeep?: number;                                  // cr/s drain
+  powerNeed?: number;
+  waterNeed?: number;
+  powerSupply?: number;                             // for plants/windmills
+  waterSupply?: number;                             // for pumps/wells
+  boost?: OptionalBoost;                            // e.g. tools → +60%
 }
 ```
 
-Reasons for the file-on-disk approach instead of a websocket or named pipe:
+Plus surrounding metadata:
 
-- Claude Code hooks can run any command, including shell scripts that just `echo` a line to a file. Trivial to install on any OS.
-- The game can be closed and still earn from a coding session; on next launch, the drainer catches up.
-- No extra process to manage. No network port. No firewall prompts.
+```ts
+interface BuildingDef {
+  id: BuildingId;
+  label: string;
+  category: BuildingCategory;        // core | harvest | industry | commerce | people | tech
+  baseCost: number;                  // construction credits (grows w/ count)
+  costGrowth: number;
+  materialCost?: MaterialCost;       // construction materials (flat, no growth)
+  maxCount?: number;
+  unlock?: { resource, gte };        // credits gate
+  requiresTech?: TechId;             // tech tree gate
+  staffNeed?: StaffNeed;             // workers/researchers/military
+  size?: number;                     // 1 (default), 2 (Power Plant), 3 (Wonder)
+  ops: BuildingOps;
+}
+```
 
-Trade-offs:
+`productionFor()` is kept as a legacy helper that returns the ops's `produces` slice + adjacency bonuses, used by a couple of UI callers. The real simulation lives in `simulate.ts`.
 
-- The bonus is tied to Claude Code specifically. Other AI tools (Copilot, Cursor, Codeium) do not produce hook lines.
-- File System Access API is Chrome / Edge / Brave only today. Firefox and Safari users see "hook unavailable" and play without it.
+## Multi-tile buildings
 
-The hook does not read code, tool inputs, or tool outputs. It writes one line per tool call and nothing else.
+Schema additions in `MapState`:
+
+```ts
+placed: Record<string, BuildingId>;              // every footprint tile stamped
+multiTileOrigin?: Record<string, string>;        // covered tile -> origin tile
+disabled?: Record<string, true>;                 // paused buildings (by origin key)
+```
+
+For an NxN building at origin (ox, oy):
+- All N×N footprint tiles get the same id in `placed`
+- Non-origin tiles map to origin via `multiTileOrigin`
+- Click / hover / inspect normalize to origin via `origins[k] ?? k`
+- Render skips non-origin tiles (only the origin draws the bigger sprite)
+- Connectivity, production, and staffing count the building once at the origin
+
+`drawIsoBuildingSized(g, kind, size)` draws the NxN sprite anchored at the origin tile, with footprint diamond corners at `(TILE_W/2, 0)`, `((N+1)·TILE_W/2, N·TILE_H/2)`, `(TILE_W/2, N·TILE_H)`, `(-(N-1)·TILE_W/2, N·TILE_H/2)`.
 
 ## Save format and versioning
 
-A save is a single JSON blob:
-
 ```ts
-// shared/src/save.ts
-export interface SaveBlob {
-  version: SaveVersion;     // bumped on schema change
-  savedAt: number;          // ms since epoch
-  state: GameState;         // resources, buildings, events, map (seed + placed + roads)
+interface SaveBlob {
+  version: 2;                  // bumped from 1 with the SimCity rebuild
+  savedAt: number;             // ms since epoch
+  state: GameState;
+  appVersion?: string;         // build's package.json version (triage aid)
 }
 ```
 
-Versioning:
+The loader (`loadOrInit`) drops saves with mismatching versions on the floor and starts fresh. There's no v1 → v2 migration — the economies are too different. Future schema bumps will follow the same approach for major shifts and use `hydrateMissingFields` for additive ones.
 
-- `version` starts at 1.
-- Breaking schema changes bump the version and add a migration step.
-- Older saves are forward-migrated by `hydrateMissingFields` on load: missing `map`, missing `roads`, missing main building, missing material subtypes, all get sensible defaults.
-- Export / import lets the player carry a save between browser and VS Code surfaces. The blob is the same shape on both sides.
+The `appVersion` field is read at build time from `app/package.json` via a Vite `define`, exposed through `app/src/version.ts` as `APP_VERSION`. Settings panel renders it next to the title.
 
-## Storage adapter
-
-`adapter/storage.ts` exposes a small interface:
+## Storage adapter (`adapter/storage.ts`)
 
 ```ts
-export interface StorageAdapter {
+interface StorageAdapter {
   load(): Promise<SaveBlob | null>;
   save(blob: SaveBlob): Promise<void>;
   clear(): Promise<void>;
@@ -169,51 +197,77 @@ export interface StorageAdapter {
 
 Two implementations:
 
-- **Standalone**: reads / writes `localStorage["nanofarm.save"]`. Synchronous under the hood but wrapped in promises for parity.
-- **Extension** (phase 3): posts messages to the host. The host writes through `extensionContext.workspaceState` (default) or `globalState` (a settings toggle).
+- **LocalStorageAdapter** — standalone Vite. Reads/writes `localStorage["nanofarm.save"]`. Synchronous under the hood but wrapped in promises for parity.
+- **VsCodeStorageAdapter** — extension. Posts messages to the host; host stores in `extensionContext.workspaceState` under `nanofarm.save`.
 
-The game core does not know which adapter it has. Detection happens once at boot via `window.acquireVsCodeApi`.
+Detection happens in `createStorageAdapter()`: if `getVsCodeApi()` returns a handle, use the VS Code adapter; otherwise localStorage. The handle comes from `adapter/vscode.ts`, which caches `window.acquireVsCodeApi()` so multiple callers (storage + token drainer) share it (the API is single-use per document).
 
-## VS Code extension host
+## VS Code extension host (`extension/src/extension.ts`)
 
-Phase 3. The extension does three things:
+The extension registers one command (`nanofarm.open`) and one webview panel. Two postMessage bridges connect the sandboxed webview to native APIs:
 
-1. Registers a command (`nanofarm.openPanel`) that creates a `WebviewPanel`.
-2. Loads `app/dist/index.html` into the panel's webview, rewriting asset URLs via `webview.asWebviewUri(...)` and setting a strict CSP.
-3. Forwards messages between the webview and `extensionContext.workspaceState`.
+### Storage bridge
 
-Build flow:
-
-- `pnpm --filter @nanofarm/app build` produces `app/dist/`.
-- The extension package step bundles `app/dist/` into the `.vsix` under `media/`.
-- The extension reads from `media/` at runtime via `vscode.Uri.joinPath(context.extensionUri, "media", ...)`.
-
-## Message channel
-
-Shared envelope shape in `shared/src/messages.ts`:
-
-```ts
-export type HostMessage =
-  | { kind: "load" }
-  | { kind: "save"; blob: SaveBlob }
-  | { kind: "clear" };
-
-export type WebviewMessage =
-  | { kind: "loaded"; blob: SaveBlob | null }
-  | { kind: "saved" }
-  | { kind: "cleared" }
-  | { kind: "error"; message: string };
+```
+webview → ext:  { type: "storage.load"|"save"|"clear", reqId, blob? }
+ext → webview:  { type: "storage.result", reqId, blob? }
 ```
 
-No other messages cross the boundary. No `eval`, no command dispatch from inside the game.
+### Hook bridge
+
+```
+webview → ext:  { type: "hook.status"|"connect"|"drain"|"set-path", reqId, path? }
+ext → webview:  { type: "hook.result", reqId, available, connected, lines?, path?, error? }
+```
+
+The hook bridge reads + truncates `~/.nanofarm/tokens.jsonl` (default; overridable via `set-path`) using Node `fs.promises`. Race with the hook script is benign — anything written between read and truncate gets dropped (rare, low-stakes).
+
+### HTML rewrite
+
+The extension loads `app/dist/index.html`, rewrites every `./asset` URL through `webview.asWebviewUri`, strips the `crossorigin` attribute that Vite emits on script/link tags (vscode-resource doesn't return CORS headers, so crossorigin causes the browser to refuse to execute the script), and stamps a CSP meta tag:
+
+```
+default-src 'none';
+img-src ${cspSource} https: data: blob:;
+script-src ${cspSource} 'unsafe-inline' 'wasm-unsafe-eval';
+style-src ${cspSource} 'unsafe-inline';
+font-src ${cspSource} data:;
+worker-src ${cspSource} blob:;
+connect-src ${cspSource} blob: data:;
+```
+
+`'wasm-unsafe-eval'` keeps PixiJS v8 happy for the renderer codepaths that compile shaders.
+
+### Build flow
+
+```bash
+pnpm --filter nanofarm-extension package    # tsc + vite build + bundle-dist + vsce package
+code --install-extension extension/nanofarm-extension-0.1.0.vsix --force
+```
+
+The `bundle-dist` script copies `app/dist` into `extension/dist` so the VSIX is self-contained.
+
+## Token drainer (`game/tokens.ts`)
+
+Three implementations, picked by `createDrainer()`:
+
+1. **VsCodeTokenDrainer** — preferred when running in the webview (`getVsCodeApi()` returns a handle). Posts hook.status / connect / drain messages to the extension; awaits the matching `hook.result` keyed by `reqId`.
+2. **BrowserTokenDrainer** — standalone Vite + Chromium. Uses the File System Access API (`showOpenFilePicker`). Persists the chosen `FileSystemFileHandle` in IndexedDB so the connection survives reloads.
+3. **NullTokenDrainer** — Firefox / Safari / anywhere FSA isn't available. `connect()` throws; `drain()` returns `[]`.
+
+The game tick calls `drainer.drain()` once per second (`HOOK_DRAIN_INTERVAL_MS = 1000`). Returned lines get applied via the `grant-ai-tokens` reducer action, which distributes the materials evenly across `["wood", "iron", "stone", "food"]`.
+
+## Per-tile connectivity
+
+`computeConnected(state)` runs a BFS from the main building through orthogonally-adjacent road tiles. For each non-main building, it checks if any footprint tile touches main, a reachable road, or another placed building (outside its own footprint). Multi-tile buildings are handled by grouping footprint tiles by origin and marking all-or-none in the connected set, so the renderer and production code treat the whole building uniformly.
 
 ## What is intentionally not in scope
 
 - No server. No shared state across devices.
-- No cloud save. The export / import JSON is the only cross-device path.
+- No cloud save. The save is local-only.
 - No analytics, no crash reporter, no remote config.
 - No anti-cheat. Memory-editing your own save is allowed.
-- No tactical combat. Wars resolve via a stat-comparison formula, never a battle map.
+- No tactical combat. Wars, if added, will resolve via a stat formula.
 - No multiplayer.
-- No microtransactions, no ads, no in-app purchases.
-- No read of code or tool I/O by the hook. Only counts.
+- No microtransactions, no ads.
+- No read of code or tool I/O by the hook. Counts only.

@@ -7,11 +7,14 @@ NanoFarm is a single-player offline idle game. It runs entirely on the device. I
 State lives in one of two places, never both at once:
 
 - **Standalone web app**: `localStorage["nanofarm.save"]` in the host browser.
-- **VS Code extension** (phase 3): `extensionContext.workspaceState` (per workspace) or `extensionContext.globalState` (per install), depending on a user-toggled setting.
+- **VS Code extension**: `extensionContext.workspaceState` under key `nanofarm.save`. Per-workspace (different VS Code workspace = different city).
 
-The save format is a versioned JSON blob. See [ARCHITECTURE.md](ARCHITECTURE.md) for the schema.
+The save format is a versioned JSON blob (`SaveBlob`, currently `version: 2`). See [ARCHITECTURE.md](ARCHITECTURE.md) for the schema.
 
-The Claude Code hook integration reads one local file (`~/.nanofarm/tokens.jsonl`) via the File System Access API after the user explicitly grants permission. The file handle is persisted in IndexedDB so the user does not have to re-grant on every page load, but the browser still enforces the same-origin permission model.
+The Claude Code hook integration reads one local file (`~/.nanofarm/tokens.jsonl`):
+
+- **Standalone**: via the File System Access API after the user explicitly grants permission. The file handle is persisted in IndexedDB so the user does not have to re-grant on every page load, but the browser still enforces the same-origin permission model.
+- **VS Code extension**: by the extension's Node `fs.promises` reading the path directly (default `~/.nanofarm/tokens.jsonl`). The path can be overridden via the `hook.set-path` postMessage but only by code running inside the webview (i.e. the bundled game). The extension does not read any other file on disk.
 
 ## Threat model
 
@@ -52,10 +55,33 @@ That is the entire record. No code, no tool input, no tool output, no file paths
 
 ## The VS Code extension specifically
 
-- The `WebviewPanel` is created with `enableScripts: true` (the game needs JS) but with `localResourceRoots` limited to `media/` inside the extension dir. The webview cannot reach any other file on disk through the standard webview resource path.
-- A content security policy header is set on the loaded HTML: `default-src 'none'; img-src ${webview.cspSource}; script-src ${webview.cspSource}; style-src ${webview.cspSource} 'unsafe-inline';`. No inline scripts, no remote scripts, no remote anything.
-- The message channel between webview and host accepts only the kinds enumerated in `shared/messages.ts`. Unknown messages are ignored.
-- The extension does not read or write any file outside `extensionContext.storageUri` and the immutable extension install dir.
+- The `WebviewPanel` is created with `enableScripts: true` (the game needs JS) but with `localResourceRoots` limited to the bundled `dist/` folder inside the extension dir. The webview cannot reach any other file on disk through the standard webview resource path.
+- A content security policy meta tag is stamped onto the loaded HTML:
+
+  ```
+  default-src 'none';
+  img-src ${cspSource} https: data: blob:;
+  script-src ${cspSource} 'unsafe-inline' 'wasm-unsafe-eval';
+  style-src ${cspSource} 'unsafe-inline';
+  font-src ${cspSource} data:;
+  worker-src ${cspSource} blob:;
+  connect-src ${cspSource} blob: data:;
+  ```
+
+  No remote scripts, no remote anything. `'wasm-unsafe-eval'` is required for PixiJS v8's renderer codegen.
+
+- The message channel between webview and host accepts only the kinds enumerated in `extension/src/extension.ts`:
+  - `storage.load` / `storage.save` / `storage.clear` - persist the save through `workspaceState`.
+  - `hook.status` / `hook.connect` / `hook.drain` / `hook.set-path` - read + truncate `~/.nanofarm/tokens.jsonl`.
+
+  Unknown message types are ignored.
+
+- The extension's file system access is limited to:
+  - `extensionContext.workspaceState` (managed by VS Code, not raw file I/O).
+  - Reading + truncating `~/.nanofarm/tokens.jsonl` (or a workspace-state-overridden path via `hook.set-path`).
+  - Reading the bundled `dist/` folder inside the extension install dir.
+
+  Nothing else is touched.
 
 ## Save tampering
 
