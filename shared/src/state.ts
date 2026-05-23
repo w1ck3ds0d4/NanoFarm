@@ -73,12 +73,24 @@ export const TECH_IDS: readonly TechId[] = [
 
 export type TechState = Record<TechId, boolean>;
 
-export type CityId = "verdant_valley" | "stonehaven" | "iron_reach" | "aether_spire";
+export type CityId =
+  | "verdant_valley"
+  | "pinewood"
+  | "greenmarsh"
+  | "stonehaven"
+  | "frostpeak"
+  | "iron_reach"
+  | "skyhold"
+  | "aether_spire";
 
 export const CITY_IDS: readonly CityId[] = [
   "verdant_valley",
+  "pinewood",
+  "greenmarsh",
   "stonehaven",
+  "frostpeak",
   "iron_reach",
+  "skyhold",
   "aether_spire"
 ] as const;
 

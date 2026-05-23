@@ -28,6 +28,26 @@ export const CITY_DEFS: Record<CityId, CityDef> = {
     progress: (s) => Math.min(1, s.meta.population / 50),
     prereqs: []
   },
+  pinewood: {
+    id: "pinewood",
+    label: "Pinewood",
+    description:
+      "Endless pine forests. The lumber industry's heartland - mills everywhere.",
+    milestoneLabel: "build 5 lumber mills",
+    isMilestoneMet: (s) => s.buildings.lumber_mill.count >= 5,
+    progress: (s) => Math.min(1, s.buildings.lumber_mill.count / 5),
+    prereqs: ["verdant_valley"]
+  },
+  greenmarsh: {
+    id: "greenmarsh",
+    label: "Greenmarsh",
+    description:
+      "Wetlands and slow rivers. Water flows abundantly here - good for farming, harder to build on.",
+    milestoneLabel: "stockpile 50 water",
+    isMilestoneMet: (s) => s.resources.water >= 50,
+    progress: (s) => Math.min(1, s.resources.water / 50),
+    prereqs: ["verdant_valley"]
+  },
   stonehaven: {
     id: "stonehaven",
     label: "Stonehaven",
@@ -43,6 +63,16 @@ export const CITY_DEFS: Record<CityId, CityDef> = {
     },
     prereqs: ["verdant_valley"]
   },
+  frostpeak: {
+    id: "frostpeak",
+    label: "Frostpeak",
+    description:
+      "Snow-capped mountain range. Stone here is unusually hard - and unusually plentiful.",
+    milestoneLabel: "stockpile 30 stone",
+    isMilestoneMet: (s) => s.resources.stone >= 30,
+    progress: (s) => Math.min(1, s.resources.stone / 30),
+    prereqs: ["stonehaven"]
+  },
   iron_reach: {
     id: "iron_reach",
     label: "Iron Reach",
@@ -52,6 +82,16 @@ export const CITY_DEFS: Record<CityId, CityDef> = {
     isMilestoneMet: (s) => s.buildings.factory.count >= 3,
     progress: (s) => Math.min(1, s.buildings.factory.count / 3),
     prereqs: ["stonehaven"]
+  },
+  skyhold: {
+    id: "skyhold",
+    label: "Skyhold",
+    description:
+      "Cliffside academies and observatories. Researchers flock here.",
+    milestoneLabel: "build 3 research labs",
+    isMilestoneMet: (s) => s.buildings.lab.count >= 3,
+    progress: (s) => Math.min(1, s.buildings.lab.count / 3),
+    prereqs: ["iron_reach"]
   },
   aether_spire: {
     id: "aether_spire",
