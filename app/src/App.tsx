@@ -285,8 +285,8 @@ export function App() {
 
         <div className="top-hud">
           <div className="resource-bar">
-            <span className="rb-cell">
-              <span className="rb-key">credits</span>
+            <span className="rb-cell" title="credits">
+              <span className="rb-key">cr</span>
               <span className="rb-val">{Math.floor(state.resources.credits)}</span>
               {renderFlow(state.meta.flow.credits)}
             </span>
@@ -294,14 +294,16 @@ export function App() {
               type="button"
               className={"rb-cell rb-clickable" + (materialsOpen ? " active" : "")}
               onClick={() => setMaterialsOpen((o) => !o)}
+              title="materials"
             >
-              <span className="rb-key">materials</span>
+              <span className="rb-key">mat</span>
               <span className="rb-val">{Math.floor(totalMaterials(state.resources))}</span>
             </button>
             <button
               type="button"
               className={"rb-cell rb-clickable" + (populationOpen ? " active" : "")}
               onClick={() => setPopulationOpen((o) => !o)}
+              title="population"
             >
               <span className="rb-key">pop</span>
               <span className="rb-val">
@@ -314,7 +316,7 @@ export function App() {
               onClick={() => setNeedsOpen((o) => !o)}
               title="happiness breakdown"
             >
-              <span className="rb-key">happy</span>
+              <span className="rb-key">hpy</span>
               <span className="rb-val">{state.meta.happiness}</span>
             </button>
             <span
@@ -351,8 +353,9 @@ export function App() {
               type="button"
               className={"rb-cell rb-clickable" + (researchOpen ? " active" : "")}
               onClick={() => setResearchOpen((o) => !o)}
+              title="research"
             >
-              <span className="rb-key">research</span>
+              <span className="rb-key">rs</span>
               <span className="rb-val">{Math.floor(state.resources.research)}</span>
               {renderFlow(state.meta.flow.research)}
             </button>

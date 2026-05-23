@@ -82,19 +82,21 @@ button:disabled {
   right: 0;
   display: flex;
   align-items: center;
-  padding: 6px 8px;
+  padding: 4px 6px;
   background: rgba(10, 14, 5, 0.9);
   border-bottom: 1px solid #2a3015;
   z-index: 4;
   font-size: 10px;
-  height: 28px;
+  min-height: 24px;
 }
 
 .resource-bar {
   display: flex;
-  gap: 4px;
+  gap: 0;
   justify-content: flex-start;
   align-items: center;
+  flex-wrap: wrap;
+  row-gap: 2px;
 }
 
 /* Every cell - whether `<span>` or `<button>` (the materials one is
@@ -105,8 +107,8 @@ button:disabled {
 .rb-cell {
   display: inline-flex;
   align-items: baseline;
-  gap: 6px;
-  padding: 2px 8px;
+  gap: 3px;
+  padding: 2px 5px;
   border: 1px solid transparent;
   background: transparent;
   font: inherit;
@@ -270,7 +272,7 @@ button:disabled {
   color: #88aa33;
   text-transform: uppercase;
   font-size: 9px;
-  letter-spacing: 1px;
+  letter-spacing: 0.3px;
 }
 
 .rb-val {
