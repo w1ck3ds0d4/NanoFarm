@@ -43,10 +43,14 @@ export const CITY_DEFS: Record<CityId, CityDef> = {
     id: "greenmarsh",
     label: "Greenmarsh",
     description:
-      "Wetlands and slow rivers. Water flows abundantly here - good for farming, harder to build on.",
-    milestoneLabel: "stockpile 50 water",
-    isMilestoneMet: (s) => s.resources.water >= 50,
-    progress: (s) => Math.min(1, s.resources.water / 50),
+      "Wetlands and slow rivers. Build at least one Water Pump and keep the city watered.",
+    milestoneLabel: "build a Water Pump and stockpile 100 food",
+    isMilestoneMet: (s) => s.buildings.water_pump.count >= 1 && s.resources.food >= 100,
+    progress: (s) => {
+      const pumpPart = s.buildings.water_pump.count >= 1 ? 0.5 : 0;
+      const foodPart = Math.min(0.5, s.resources.food / 200);
+      return pumpPart + foodPart;
+    },
     prereqs: ["verdant_valley"]
   },
   stonehaven: {

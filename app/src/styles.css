@@ -121,6 +121,12 @@ button:disabled {
   padding-left: 0;
 }
 
+/* Utility cell flashes red when demand exceeds supply. */
+.rb-cell.short .rb-key,
+.rb-cell.short .rb-val {
+  color: #ff6644;
+}
+
 .rb-key {
   color: #88aa33;
   text-transform: uppercase;

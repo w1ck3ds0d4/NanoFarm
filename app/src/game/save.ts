@@ -55,15 +55,12 @@ export async function loadOrInit(
   now: number
 ): Promise<GameState> {
   const blob = await adapter.load();
+  // No save -> fresh start. Old version -> drop on the floor and
+  // fresh-start; the v1->v2 jump came with the SimCity economy
+  // rebuild and there is no useful migration path. Newer-than-this
+  // build is a dev mistake (someone downgraded the extension), so
+  // we also start fresh rather than crash the game.
   if (!blob) return makeInitialState(now);
-  return hydrateMissingFields(migrate(blob).state);
-}
-
-function migrate(blob: SaveBlob): SaveBlob {
-  if (blob.version > CURRENT_SAVE_VERSION) {
-    throw new Error(
-      `save is from a newer version (${blob.version}) than this build (${CURRENT_SAVE_VERSION}).`
-    );
-  }
-  return blob;
+  if (blob.version !== CURRENT_SAVE_VERSION) return makeInitialState(now);
+  return hydrateMissingFields(blob.state);
 }

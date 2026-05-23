@@ -36,8 +36,10 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
   const visibleByCategory: Record<BuildingCategory, BuildingId[]> = {
     core: [],
     harvest: [],
-    tech: [],
-    people: []
+    industry: [],
+    commerce: [],
+    people: [],
+    tech: []
   };
   for (const id of Object.keys(BUILDING_DEFS) as BuildingId[]) {
     const def = BUILDING_DEFS[id];

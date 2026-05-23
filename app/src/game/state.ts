@@ -6,30 +6,23 @@ import {
   type ResourceMap,
   type ResourceId,
   type TechId,
-  MATERIAL_IDS,
+  RESOURCE_IDS,
   makeInitialState
 } from "@nanofarm/shared";
-import { CITY_DEFS, legacyBonus } from "./cities";
+import { CITY_DEFS } from "./cities";
 import {
   BUILDING_DEFS,
   ROAD_COST,
   TECH_DEFS,
   buildingSize,
   canAffordMaterials,
-  costFor,
-  productionFor,
-  type NeighborBuildings
+  costFor
 } from "./buildings";
-import { applyPopulationTick, type PopulationTick } from "./population";
+import { applyPopulationDelta, type TickResult } from "./simulate";
 
 export type Action =
   | { type: "hydrate"; state: GameState }
-  | {
-      type: "tick";
-      now: number;
-      produced: ResourceMap;
-      popTick: PopulationTick;
-    }
+  | { type: "tick"; now: number; result: TickResult }
   | { type: "place-building"; building: BuildingId; x: number; y: number }
   | { type: "remove-building"; x: number; y: number }
   | { type: "place-road"; x: number; y: number }
@@ -43,9 +36,6 @@ export type Action =
   | { type: "schedule-event"; eventId: string; fireAt: number }
   | { type: "reset"; now: number };
 
-function emptyResources(): ResourceMap {
-  return { credits: 0, research: 0, electricity: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 };
-}
 
 export function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
@@ -53,29 +43,32 @@ export function reducer(state: GameState, action: Action): GameState {
       return action.state;
     }
     case "tick": {
-      const r = state.resources;
-      const nextPotatoes = Math.max(
-        0,
-        r.potatoes + action.produced.potatoes - action.popTick.foodConsumed
+      const r = action.result;
+      const nextResources = { ...state.resources };
+      for (const k of RESOURCE_IDS) {
+        const delta = r.resourceDeltas[k] ?? 0;
+        nextResources[k] = Math.max(0, nextResources[k] + delta);
+      }
+      const nextPopulation = applyPopulationDelta(
+        state.meta.population,
+        r.populationDelta,
+        r.training,
       );
-      const nextPopulation = applyPopulationTick(state.meta.population, action.popTick);
       return {
         ...state,
         meta: {
           ...state.meta,
           lastTickAt: action.now,
-          population: nextPopulation
+          population: nextPopulation,
+          happiness: r.happiness,
+          services: {
+            powerSupply: r.services.powerSupply,
+            powerDemand: r.services.powerDemand,
+            waterSupply: r.services.waterSupply,
+            waterDemand: r.services.waterDemand
+          }
         },
-        resources: {
-          credits: r.credits + action.produced.credits,
-          research: r.research + action.produced.research,
-          electricity: r.electricity + action.produced.electricity,
-          wood: r.wood + action.produced.wood,
-          iron: r.iron + action.produced.iron,
-          stone: r.stone + action.produced.stone,
-          water: r.water + action.produced.water,
-          potatoes: nextPotatoes
-        }
+        resources: nextResources
       };
     }
     case "place-building": {
@@ -350,8 +343,15 @@ export function reducer(state: GameState, action: Action): GameState {
       return next;
     }
     case "grant-ai-tokens": {
+      // AI hook drops grant the player a basket of raw materials,
+      // split evenly across the stockpiled commodities (skipping
+      // intermediates so an AI bonus can't shortcut the production
+      // chain entirely).
       const amount = action.tools.length;
-      const each = amount / MATERIAL_IDS.length;
+      const buckets: ResourceId[] = ["wood", "iron", "stone", "food"];
+      const each = amount / buckets.length;
+      const nextResources = { ...state.resources };
+      for (const k of buckets) nextResources[k] = nextResources[k] + each;
       return {
         ...state,
         meta: {
@@ -359,13 +359,7 @@ export function reducer(state: GameState, action: Action): GameState {
           hookDrainedAt: action.now,
           totalAiTokensEarned: state.meta.totalAiTokensEarned + amount
         },
-        resources: {
-          ...state.resources,
-          wood: state.resources.wood + each,
-          iron: state.resources.iron + each,
-          stone: state.resources.stone + each,
-          water: state.resources.water + each
-        }
+        resources: nextResources
       };
     }
     case "schedule-event": {
@@ -386,82 +380,3 @@ export function reducer(state: GameState, action: Action): GameState {
   }
 }
 
-/** Count the 4-cardinal neighbours of (x, y) that are granaries or
- * markets, for district-style adjacency bonuses in productionFor. */
-function neighborBuildingsAt(
-  state: GameState,
-  x: number,
-  y: number
-): NeighborBuildings {
-  const out: NeighborBuildings = { granary: 0, market: 0 };
-  const around: Array<[number, number]> = [
-    [x - 1, y],
-    [x + 1, y],
-    [x, y - 1],
-    [x, y + 1]
-  ];
-  for (const [nx, ny] of around) {
-    const id = state.map.placed[`${nx},${ny}`];
-    if (id === "granary") out.granary++;
-    else if (id === "market") out.market++;
-  }
-  return out;
-}
-
-export function computeProduction(
-  state: GameState,
-  connected: Set<string>,
-  neighborsAt: (x: number, y: number) => import("@nanofarm/shared").TerrainType[],
-  dtSec: number
-): ResourceMap {
-  const out = emptyResources();
-  const legacyMult = legacyBonus(state.world?.legacy ?? 0);
-
-  // Total demand for each staff type, summed across connected,
-  // staff-needing buildings. Disconnected buildings are idle so they
-  // do not draw staff. Multi-tile buildings only count their origin
-  // tile - every footprint tile shares the same BuildingId in
-  // `placed`, so we have to skip the non-origin entries here.
-  const origins = state.map.multiTileOrigin ?? {};
-  let workerDemand = 0;
-  let researcherDemand = 0;
-  let militaryDemand = 0;
-  for (const [key, id] of Object.entries(state.map.placed) as [string, BuildingId][]) {
-    if (id === "main") continue;
-    if (origins[key]) continue; // non-origin footprint tile
-    if (!connected.has(key)) continue;
-    const need = BUILDING_DEFS[id]?.staffNeed;
-    if (!need) continue;
-    workerDemand += need.worker ?? 0;
-    researcherDemand += need.researcher ?? 0;
-    militaryDemand += need.military ?? 0;
-  }
-  const pop = state.meta.population;
-  const workerRatio =
-    workerDemand === 0 ? 1 : Math.min(1, pop.worker / workerDemand);
-  const researcherRatio =
-    researcherDemand === 0 ? 1 : Math.min(1, pop.researcher / researcherDemand);
-  const militaryRatio =
-    militaryDemand === 0 ? 1 : Math.min(1, pop.military / militaryDemand);
-
-  for (const [key, id] of Object.entries(state.map.placed) as [string, BuildingId][]) {
-    if (id === "main") continue;
-    if (origins[key]) continue; // non-origin footprint tile - already counted via origin
-    if (!connected.has(key)) continue;
-    const [x, y] = key.split(",").map(Number);
-    const rules = productionFor(id, neighborsAt(x, y), neighborBuildingsAt(state, x, y));
-    // Buildings with multiple staff types are scaled by the
-    // worst-staffed type, so an understaffed lab pulls every output
-    // down equally.
-    const need = BUILDING_DEFS[id]?.staffNeed;
-    let staffMult = 1;
-    if (need?.worker) staffMult = Math.min(staffMult, workerRatio);
-    if (need?.researcher) staffMult = Math.min(staffMult, researcherRatio);
-    if (need?.military) staffMult = Math.min(staffMult, militaryRatio);
-    for (const k of Object.keys(rules) as ResourceId[]) {
-      const v = rules[k] ?? 0;
-      out[k] += v * dtSec * legacyMult * staffMult;
-    }
-  }
-  return out;
-}

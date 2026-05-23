@@ -5,8 +5,9 @@ const MATERIAL_COLOR: Partial<Record<ResourceId, string>> = {
   wood: "#88aa33",
   iron: "#aa6633",
   stone: "#9aa0a0",
-  water: "#5a8eba",
-  potatoes: "#d4a058"
+  food: "#d4a058",
+  goods: "#c44a8a",
+  tools: "#88a0c8"
 };
 
 interface Props {

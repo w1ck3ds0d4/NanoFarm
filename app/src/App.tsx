@@ -290,8 +290,38 @@ export function App() {
               </span>
             </button>
             <span className="rb-cell">
-              <span className="rb-key">power</span>
-              <span className="rb-val">{Math.floor(state.resources.electricity)}</span>
+              <span className="rb-key">happy</span>
+              <span className="rb-val">{state.meta.happiness}</span>
+            </span>
+            <span
+              className={
+                "rb-cell" +
+                (state.meta.services.powerDemand > state.meta.services.powerSupply
+                  ? " short"
+                  : "")
+              }
+              title="power supply / demand"
+            >
+              <span className="rb-key">pw</span>
+              <span className="rb-val">
+                {Math.floor(state.meta.services.powerSupply)}/
+                {Math.floor(state.meta.services.powerDemand)}
+              </span>
+            </span>
+            <span
+              className={
+                "rb-cell" +
+                (state.meta.services.waterDemand > state.meta.services.waterSupply
+                  ? " short"
+                  : "")
+              }
+              title="water supply / demand"
+            >
+              <span className="rb-key">wt</span>
+              <span className="rb-val">
+                {Math.floor(state.meta.services.waterSupply)}/
+                {Math.floor(state.meta.services.waterDemand)}
+              </span>
             </span>
             <button
               type="button"

@@ -1,75 +1,83 @@
 import { DEFAULT_MAP_SIZE } from "./map";
 
+// Resources are everything the player stockpiles. Utilities (power,
+// water) are NOT resources - they are computed live each tick as a
+// supply-vs-demand service and never persist between ticks.
 export type ResourceId =
   | "credits"
   | "research"
-  | "electricity"
   | "wood"
   | "iron"
   | "stone"
-  | "water"
-  | "potatoes";
+  | "food"
+  | "goods"
+  | "tools";
 
 export type ResourceMap = Record<ResourceId, number>;
 
 export const RESOURCE_IDS: readonly ResourceId[] = [
   "credits",
   "research",
-  "electricity",
   "wood",
   "iron",
   "stone",
-  "water",
-  "potatoes"
+  "food",
+  "goods",
+  "tools"
 ] as const;
 
+/** Stockpiled commodities the player can see in the materials panel.
+ * Excludes credits + research, which have their own HUD cells. */
 export const MATERIAL_IDS: readonly ResourceId[] = [
   "wood",
   "iron",
   "stone",
-  "water",
-  "potatoes"
+  "food",
+  "goods",
+  "tools"
 ] as const;
 
 export function totalMaterials(r: ResourceMap): number {
-  return r.wood + r.iron + r.stone + r.water + r.potatoes;
+  return r.wood + r.iron + r.stone + r.food + r.goods + r.tools;
 }
 
 export type BuildingId =
   | "main"
-  | "farm"
-  | "mine"
   | "house"
-  | "lab"
+  | "farm"
   | "lumber_mill"
+  | "mine"
   | "quarry"
-  | "granary"
-  | "market"
+  | "water_pump"
+  | "power_plant"
+  | "workshop"
   | "factory"
+  | "market"
   | "school"
   | "academy"
   | "barracks"
-  | "power_plant"
-  | "wonder"
-  | "water_pump";
+  | "lab"
+  | "granary"
+  | "wonder";
 
 export const BUILDING_IDS: readonly BuildingId[] = [
   "main",
-  "farm",
-  "mine",
   "house",
-  "lab",
+  "farm",
   "lumber_mill",
+  "mine",
   "quarry",
-  "granary",
-  "market",
+  "water_pump",
+  "power_plant",
+  "workshop",
   "factory",
+  "market",
   "school",
   "academy",
   "barracks",
-  "power_plant",
-  "wonder",
-  "water_pump",
+  "lab",
+  "granary",
+  "wonder"
 ] as const;
 
 export type JobId = "idle" | "worker" | "researcher" | "military";
@@ -85,14 +93,20 @@ export function totalPopulation(p: PopulationByJob): number {
 export type TechId =
   | "agriculture"
   | "industry"
+  | "engineering"
   | "commerce"
-  | "heavy_industry";
+  | "metallurgy"
+  | "heavy_industry"
+  | "education";
 
 export const TECH_IDS: readonly TechId[] = [
   "agriculture",
   "industry",
+  "engineering",
   "commerce",
+  "metallurgy",
   "heavy_industry",
+  "education"
 ] as const;
 
 export type TechState = Record<TechId, boolean>;
@@ -149,6 +163,13 @@ export interface EventsState {
   scheduled: ScheduledEvent[];
 }
 
+export interface ServicesSnapshot {
+  powerSupply: number;
+  powerDemand: number;
+  waterSupply: number;
+  waterDemand: number;
+}
+
 export interface MetaState {
   startedAt: number;
   lastTickAt: number;
@@ -157,6 +178,14 @@ export interface MetaState {
   /** Current population split by job. Fractional internally;
    * displayed floored. Sum is the player-visible population number. */
   population: PopulationByJob;
+  /** Citywide happiness 0-100, averaged across needs. Drives
+   * rent multiplier + leave rate. Computed from the previous
+   * tick's needs check; persisted so the HUD can display it. */
+  happiness: number;
+  /** Last-tick power/water supply and demand totals. Lives on meta
+   * so the HUD can render the city's utility status without
+   * re-running the simulation. */
+  services: ServicesSnapshot;
 }
 
 export interface MapState {
@@ -197,31 +226,41 @@ export function makeInitialState(now: number, seed?: number): GameState {
       lastTickAt: now,
       hookDrainedAt: 0,
       totalAiTokensEarned: 0,
-      population: { idle: 0, worker: 0, researcher: 0, military: 0 }
+      population: { idle: 0, worker: 0, researcher: 0, military: 0 },
+      happiness: 100,
+      services: { powerSupply: 0, powerDemand: 0, waterSupply: 0, waterDemand: 0 }
     },
-    // Starting credits cover: main (free) + first farm (10) + a few roads
-    // (2 each) so the player can route the farm to main if they didn't
-    // land adjacent. With the previous 10 credits, dropping a farm one
-    // tile off main left the player with 0 credits and a disconnected
-    // producer - soft-locked.
-    resources: { credits: 20, research: 0, electricity: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 },
+    // Bootstrap budget: enough credits + raw materials to build main +
+    // a starter farm + a house + a few roads without grinding. The
+    // economy then needs to take over.
+    resources: {
+      credits: 50,
+      research: 0,
+      wood: 8,
+      iron: 0,
+      stone: 0,
+      food: 10,
+      goods: 0,
+      tools: 0
+    },
     buildings: {
       main: { id: "main", count: 0 },
-      farm: { id: "farm", count: 0 },
-      mine: { id: "mine", count: 0 },
       house: { id: "house", count: 0 },
-      lab: { id: "lab", count: 0 },
+      farm: { id: "farm", count: 0 },
       lumber_mill: { id: "lumber_mill", count: 0 },
+      mine: { id: "mine", count: 0 },
       quarry: { id: "quarry", count: 0 },
-      granary: { id: "granary", count: 0 },
-      market: { id: "market", count: 0 },
+      water_pump: { id: "water_pump", count: 0 },
+      power_plant: { id: "power_plant", count: 0 },
+      workshop: { id: "workshop", count: 0 },
       factory: { id: "factory", count: 0 },
+      market: { id: "market", count: 0 },
       school: { id: "school", count: 0 },
       academy: { id: "academy", count: 0 },
       barracks: { id: "barracks", count: 0 },
-      power_plant: { id: "power_plant", count: 0 },
-      wonder: { id: "wonder", count: 0 },
-      water_pump: { id: "water_pump", count: 0 }
+      lab: { id: "lab", count: 0 },
+      granary: { id: "granary", count: 0 },
+      wonder: { id: "wonder", count: 0 }
     },
     events: {
       firedIds: [],
@@ -240,8 +279,11 @@ export function makeInitialState(now: number, seed?: number): GameState {
     techs: {
       agriculture: false,
       industry: false,
+      engineering: false,
       commerce: false,
-      heavy_industry: false
+      metallurgy: false,
+      heavy_industry: false,
+      education: false
     },
     world: {
       currentCity: "verdant_valley",

@@ -264,6 +264,13 @@ const WATER_PUMP_PALETTE: BuildingPalette = {
   accent: 0xb8e0ff
 };
 
+const WORKSHOP_PALETTE: BuildingPalette = {
+  top: 0xc8a06a,
+  right: 0x885828,
+  left: 0x4a2810,
+  accent: 0xffc888
+};
+
 const PALETTES: Record<BuildingId, BuildingPalette> = {
   main: MAIN_PALETTE,
   farm: FARM_PALETTE,
@@ -280,7 +287,8 @@ const PALETTES: Record<BuildingId, BuildingPalette> = {
   barracks: BARRACKS_PALETTE,
   power_plant: POWER_PLANT_PALETTE,
   wonder: WONDER_PALETTE,
-  water_pump: WATER_PUMP_PALETTE
+  water_pump: WATER_PUMP_PALETTE,
+  workshop: WORKSHOP_PALETTE
 };
 
 function buildingHeight(kind: BuildingId): number {
@@ -480,6 +488,14 @@ export function drawIsoBuilding(g: Graphics, kind: BuildingId, dim = false): voi
     g.rect(TILE_W / 2 - 1, TILE_H / 2 - H - 8, 1, 7);
     g.fill({ color: p.accent, alpha });
     g.rect(TILE_W / 2, TILE_H / 2 - H - 8, 4, 3);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "workshop") {
+    // Workshop: anvil silhouette on the roof + a crossed-tools accent
+    g.rect(TILE_W / 2 - 5, TILE_H / 2 - H - 2, 10, 3);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 1, TILE_H / 2 - H - 5, 2, 3);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 3, TILE_H / 2 - 2, 6, 2);
     g.fill({ color: p.accent, alpha });
   } else if (kind === "water_pump") {
     // Water pump: a curved spout + droplet, plus a horizontal handle.

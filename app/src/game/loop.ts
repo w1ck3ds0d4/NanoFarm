@@ -1,9 +1,7 @@
 import type { GameState } from "@nanofarm/shared";
-import { neighborTerrains } from "@nanofarm/shared";
 import type { Action } from "./state";
-import { computeProduction } from "./state";
 import { computeConnected } from "./connectivity";
-import { computePopulation, type PopulationTick } from "./population";
+import { simulateTick } from "./simulate";
 import { evaluateTriggers } from "./events";
 import type { TokenDrainer } from "./tokens";
 
@@ -49,25 +47,11 @@ export class GameLoop {
     const now = Date.now();
     const dtSec = dtMs / 1000;
     const state = this.deps.getState();
-    const terrain = this.deps.getTerrain();
-    const w = state.map.width;
-    const h = state.map.height;
 
     const connected = computeConnected(state);
-    const produced = computeProduction(
-      state,
-      connected,
-      (x, y) => neighborTerrains(terrain, w, h, x, y),
-      dtSec
-    );
-    const popTick: PopulationTick = computePopulation(state, connected, dtSec);
+    const result = simulateTick(state, connected, dtSec);
 
-    this.deps.dispatch({
-      type: "tick",
-      now,
-      produced,
-      popTick
-    });
+    this.deps.dispatch({ type: "tick", now, result });
 
     if (now - this.lastHookDrain >= HOOK_DRAIN_INTERVAL_MS) {
       this.lastHookDrain = now;

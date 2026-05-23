@@ -16,12 +16,12 @@ interface Props {
 const RESOURCE_LABEL: Record<ResourceId, string> = {
   credits: "cr",
   research: "rs",
-  electricity: "pw",
   wood: "wood",
   iron: "iron",
   stone: "stone",
-  water: "water",
-  potatoes: "pot",
+  food: "food",
+  goods: "goods",
+  tools: "tools",
 };
 
 const TERRAIN_LABEL: Record<TerrainType, string> = {

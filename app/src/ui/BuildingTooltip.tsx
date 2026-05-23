@@ -22,12 +22,12 @@ interface Props {
 const SHORT: Record<ResourceId, string> = {
   credits: "cr",
   research: "rs",
-  electricity: "pw",
   wood: "wd",
   iron: "ir",
   stone: "st",
-  water: "wt",
-  potatoes: "pot",
+  food: "fd",
+  goods: "gd",
+  tools: "tl",
 };
 
 export function BuildingTooltip({
