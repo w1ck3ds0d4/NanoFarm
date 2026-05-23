@@ -1,6 +1,6 @@
 import type { BuildingId, GameState, ResourceId, TerrainType } from "@nanofarm/shared";
 import { neighborTerrains } from "@nanofarm/shared";
-import { BUILDING_DEFS, HOUSE_CAPACITY, productionFor } from "../game/buildings";
+import { BUILDING_DEFS, HOUSE_CAPACITY, costFor, productionFor } from "../game/buildings";
 
 interface Props {
   state: GameState;
@@ -8,6 +8,7 @@ interface Props {
   connected: Set<string>;
   inspectKey: string;
   onClose: () => void;
+  onRemove: () => void;
 }
 
 // Short labels for the resource lines. The full names are noisier
@@ -31,7 +32,14 @@ const TERRAIN_LABEL: Record<TerrainType, string> = {
   sand: "sand",
 };
 
-export function BuildingInspector({ state, terrain, connected, inspectKey, onClose }: Props) {
+export function BuildingInspector({
+  state,
+  terrain,
+  connected,
+  inspectKey,
+  onClose,
+  onRemove,
+}: Props) {
   const id = state.map.placed[inspectKey] as BuildingId | undefined;
   if (!id) return null;
 
@@ -112,6 +120,25 @@ export function BuildingInspector({ state, terrain, connected, inspectKey, onClo
           )}
         </>
       )}
+
+      {/* Main is the network anchor and is hidden from removal; for
+          everything else the button refunds 50% of the most-recent
+          placement cost (which equals what the just-built one paid). */}
+      {id !== "main" && (() => {
+        const count = state.buildings[id].count;
+        const lastCost = costFor(def, count - 1);
+        const refund = Math.floor(lastCost * 0.5);
+        return (
+          <button
+            type="button"
+            className="ip-remove"
+            onClick={onRemove}
+            title="remove this building and refund half its last placement cost"
+          >
+            remove (refund: {refund} cr)
+          </button>
+        );
+      })()}
     </div>
   );
 }

@@ -19,6 +19,7 @@ export type Action =
       foodConsumed: number;
     }
   | { type: "place-building"; building: BuildingId; x: number; y: number }
+  | { type: "remove-building"; x: number; y: number }
   | { type: "place-road"; x: number; y: number }
   | { type: "queue-event"; eventId: string }
   | { type: "open-event"; eventId: string }
@@ -106,6 +107,35 @@ export function reducer(state: GameState, action: Action): GameState {
           ...state.map,
           placed: { ...state.map.placed, [key]: action.building }
         }
+      };
+    }
+    case "remove-building": {
+      const rKey = `${action.x},${action.y}`;
+      const id = state.map.placed[rKey];
+      if (!id) return state;
+      // Main is the network anchor; removing it would orphan every
+      // other building and is rarely what the player meant. The
+      // inspector hides the remove button for main, but guard at the
+      // reducer too so an out-of-UI dispatch can't strand the world.
+      if (id === "main") return state;
+      const def = BUILDING_DEFS[id];
+      const count = state.buildings[id].count;
+      if (count <= 0) return state;
+      // Refund 50% of the most-recent placement cost. cost grows with
+      // count, so the "last" one paid was costFor(def, count - 1).
+      // Floor to keep credits as integers.
+      const lastCost = costFor(def, count - 1);
+      const refund = Math.floor(lastCost * 0.5);
+      const nextPlaced: typeof state.map.placed = { ...state.map.placed };
+      delete nextPlaced[rKey];
+      return {
+        ...state,
+        resources: { ...state.resources, credits: state.resources.credits + refund },
+        buildings: {
+          ...state.buildings,
+          [id]: { id, count: count - 1 }
+        },
+        map: { ...state.map, placed: nextPlaced }
       };
     }
     case "place-road": {

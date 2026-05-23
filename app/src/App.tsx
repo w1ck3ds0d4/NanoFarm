@@ -246,6 +246,11 @@ export function App() {
             connected={connected}
             inspectKey={inspected}
             onClose={() => setInspected(null)}
+            onRemove={() => {
+              const [xs, ys] = inspected.split(",");
+              dispatch({ type: "remove-building", x: Number(xs), y: Number(ys) });
+              setInspected(null);
+            }}
           />
         )}
 
