@@ -297,7 +297,8 @@ export function renderScene(scene: Scene, p: RenderParams): void {
       scene.buildingsPool.set(key, g);
     }
     const isDisconnected = id !== "main" && !p.connected.has(key);
-    drawIsoBuildingSized(g, id, size, isDisconnected);
+    const isPaused = !!p.state.map.disabled?.[key];
+    drawIsoBuildingSized(g, id, size, isDisconnected || isPaused);
     const { sx, sy } = tileToScreen(wx, wy, p.cameraX, p.cameraY, p.canvasW, p.canvasH, p.zoom);
     g.position.set(sx, sy);
     g.scale.set(p.zoom);

@@ -402,6 +402,10 @@ export function App() {
               dispatch({ type: "remove-building", x: Number(xs), y: Number(ys) });
               setInspected(null);
             }}
+            onToggleDisabled={() => {
+              const [xs, ys] = inspected.split(",");
+              dispatch({ type: "toggle-building-disabled", x: Number(xs), y: Number(ys) });
+            }}
           />
         )}
 

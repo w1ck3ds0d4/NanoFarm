@@ -10,6 +10,7 @@ interface Props {
   inspectKey: string;
   onClose: () => void;
   onRemove: () => void;
+  onToggleDisabled: () => void;
 }
 
 // Short labels for the resource lines. The full names are noisier
@@ -41,6 +42,7 @@ export function BuildingInspector({
   inspectKey,
   onClose,
   onRemove,
+  onToggleDisabled,
 }: Props) {
   const id = state.map.placed[inspectKey] as BuildingId | undefined;
   if (!id) return null;
@@ -50,6 +52,7 @@ export function BuildingInspector({
   const y = Number(yStr);
   const def = BUILDING_DEFS[id];
   const isConnected = connected.has(inspectKey);
+  const isDisabled = !!state.map.disabled?.[inspectKey];
   const neighbors = neighborTerrains(terrain, state.map.width, state.map.height, x, y);
   const ops = def.ops;
 
@@ -158,9 +161,10 @@ export function BuildingInspector({
 
       <div className={`ip-status ${isConnected ? "ok" : "stranded"}`}>
         {isConnected ? "connected" : "stranded - build a road to main"}
+        {isDisabled && " · PAUSED"}
       </div>
 
-      {id !== "main" && id !== "house" && isConnected && (
+      {id !== "main" && id !== "house" && isConnected && !isDisabled && (
         <div className={`ip-runline ${runPct === 100 ? "ok" : runPct > 0 ? "warn" : "bad"}`}>
           running at {runPct}%
           {runPct < 100 && bottleneckLabel(def, pop, services, state.resources)}
@@ -187,6 +191,22 @@ export function BuildingInspector({
           {ops.waterSupply ? (ops.powerSupply ? " + " : "") + `supplies ${ops.waterSupply} wt` : ""}
         </div>
       )}
+
+      {ops?.boost && (() => {
+        const b = ops.boost;
+        const inputs = Object.entries(b.consumes)
+          .map(([r, a]) => `${a?.toFixed(2)} ${r}`)
+          .join(" + ");
+        const active = Object.entries(b.consumes).every(
+          ([r]) => (state.resources[r as ResourceId] ?? 0) > 0,
+        );
+        const pct = Math.round((b.multiplier - 1) * 100);
+        return (
+          <div className={`ip-boost ${active ? "on" : "off"}`}>
+            boost: {inputs} → +{pct}% output {active ? "(active)" : "(stockpile empty)"}
+          </div>
+        );
+      })()}
 
       {id === "main" && (
         <div className="ip-note">network anchor. no production.</div>
@@ -233,6 +253,17 @@ export function BuildingInspector({
             </div>
           )}
         </>
+      )}
+
+      {id !== "main" && id !== "house" && (
+        <button
+          type="button"
+          className={"ip-pause" + (isDisabled ? " on" : "")}
+          onClick={onToggleDisabled}
+          title="paused buildings still cost upkeep but produce nothing"
+        >
+          {isDisabled ? "resume" : "pause"}
+        </button>
       )}
 
       {id !== "main" && (() => {

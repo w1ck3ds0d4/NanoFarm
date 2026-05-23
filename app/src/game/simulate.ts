@@ -113,13 +113,32 @@ export function simulateTick(
 
   type LiveBuilding = { key: string; id: BuildingId };
   const live: LiveBuilding[] = [];
+  const disabled = state.map.disabled ?? {};
   for (const [key, id] of Object.entries(state.map.placed) as [
     string,
     BuildingId,
   ][]) {
     if (origins[key]) continue; // skip non-origin footprint tiles
     if (id !== "main" && !connected.has(key)) continue;
+    // Paused buildings still count as connected for adjacency but
+    // do nothing operational. Upkeep is applied separately below
+    // so the player keeps paying for idle slabs of concrete.
+    if (disabled[key]) continue;
     live.push({ key, id });
+  }
+
+  // Apply upkeep to disabled-but-connected buildings (they still owe
+  // rent; that's part of the cost of pausing rather than removing).
+  const upkeepOnlyKeys: string[] = [];
+  for (const [key, id] of Object.entries(state.map.placed) as [
+    string,
+    BuildingId,
+  ][]) {
+    if (origins[key]) continue;
+    if (id === "main") continue;
+    if (!connected.has(key)) continue;
+    if (!disabled[key]) continue;
+    upkeepOnlyKeys.push(key);
   }
 
   // ─── Pass 1: staffing demand → staffing ratios ──────────────────────────
@@ -250,6 +269,28 @@ export function simulateTick(
         add(deltas, res as ResourceId, -(amt ?? 0) * runRatio * dtSec);
       }
     }
+    // Optional boost: if every input is in stock, multiply output
+     // and drain the input. We check stockpile (not per-tick demand
+     // ratio) so the boost auto-enables/disables as resources flow
+     // in and out.
+    let boostMult = 1;
+    if (def.ops.boost) {
+      const b = def.ops.boost;
+      let boostActive = true;
+      for (const [res, amt] of Object.entries(b.consumes)) {
+        const need = (amt ?? 0) * runRatio * dtSec;
+        if ((state.resources[res as ResourceId] ?? 0) < need) {
+          boostActive = false;
+          break;
+        }
+      }
+      if (boostActive) {
+        boostMult = b.multiplier;
+        for (const [res, amt] of Object.entries(b.consumes)) {
+          add(deltas, res as ResourceId, -(amt ?? 0) * runRatio * dtSec);
+        }
+      }
+    }
     if (def.ops.produces) {
       // Granary district bonus: each 4-cardinal neighbour granary
       // adds +50% to a farm's food output, capped at +200%. Re-wired
@@ -262,13 +303,21 @@ export function simulateTick(
         add(
           deltas,
           res as ResourceId,
-          (amt ?? 0) * runRatio * legacyMult * mult * dtSec,
+          (amt ?? 0) * runRatio * legacyMult * boostMult * mult * dtSec,
         );
       }
     }
     if (def.ops.upkeep) {
       add(deltas, "credits", -def.ops.upkeep * dtSec);
     }
+  }
+
+  // Upkeep for paused-but-connected buildings: they don't produce
+  // or consume anything else, but the lights stay on (sort of).
+  for (const key of upkeepOnlyKeys) {
+    const id = state.map.placed[key] as BuildingId;
+    const upkeep = BUILDING_DEFS[id]?.ops?.upkeep;
+    if (upkeep) add(deltas, "credits", -upkeep * dtSec);
   }
 
   // Resident consumption: deduct what they actually eat / buy

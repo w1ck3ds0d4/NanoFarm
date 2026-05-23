@@ -148,6 +148,10 @@ function BuildingCard({
   if (ops.waterSupply) opsBits.push(`+${ops.waterSupply} wt`);
   if (ops.powerNeed) opsBits.push(`-${ops.powerNeed} pw`);
   if (ops.waterNeed) opsBits.push(`-${ops.waterNeed} wt`);
+  if (ops.boost) {
+    const pct = Math.round((ops.boost.multiplier - 1) * 100);
+    opsBits.push(`+${pct}% w/ tools`);
+  }
 
   return (
     <button

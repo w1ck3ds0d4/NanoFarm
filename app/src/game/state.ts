@@ -25,6 +25,7 @@ export type Action =
   | { type: "tick"; now: number; result: TickResult }
   | { type: "place-building"; building: BuildingId; x: number; y: number }
   | { type: "remove-building"; x: number; y: number }
+  | { type: "toggle-building-disabled"; x: number; y: number }
   | { type: "place-road"; x: number; y: number }
   | { type: "research-tech"; tech: TechId }
   | { type: "travel-city"; city: CityId; now: number }
@@ -136,6 +137,15 @@ export function reducer(state: GameState, action: Action): GameState {
         nextPlaced[fkey] = action.building;
         if (fkey !== originKey) nextOrigins[fkey] = originKey;
       }
+      // Wonder grants a one-shot +5 legacy on completion (this is the
+      // FIRST wonder placement - maxCount enforces only one ever
+      // exists, so we don't need to gate on owned===0). Legacy is the
+      // prestige currency that boosts production +5% per point; the
+      // wonder is the natural late-game capstone for a fresh city.
+      const nextWorld =
+        action.building === "wonder"
+          ? { ...state.world, legacy: state.world.legacy + 5 }
+          : state.world;
       return {
         ...state,
         resources: nextResources,
@@ -147,7 +157,26 @@ export function reducer(state: GameState, action: Action): GameState {
           ...state.map,
           placed: nextPlaced,
           multiTileOrigin: nextOrigins
-        }
+        },
+        world: nextWorld
+      };
+    }
+    case "toggle-building-disabled": {
+      const k = `${action.x},${action.y}`;
+      const id = state.map.placed[k];
+      if (!id) return state;
+      // Normalize to origin so the toggle persists against the
+      // canonical key regardless of which footprint tile was clicked.
+      const origin = state.map.multiTileOrigin?.[k] ?? k;
+      const disabled = { ...(state.map.disabled ?? {}) };
+      if (disabled[origin]) {
+        delete disabled[origin];
+      } else {
+        disabled[origin] = true;
+      }
+      return {
+        ...state,
+        map: { ...state.map, disabled }
       };
     }
     case "remove-building": {
@@ -171,6 +200,7 @@ export function reducer(state: GameState, action: Action): GameState {
       const refund = Math.floor(lastCost * 0.5);
       const nextPlaced: typeof state.map.placed = { ...state.map.placed };
       const nextOrigins: Record<string, string> = { ...origins };
+      const nextDisabled = { ...(state.map.disabled ?? {}) };
       for (let dy = 0; dy < size; dy++) {
         for (let dx = 0; dx < size; dx++) {
           const fk = `${ox + dx},${oy + dy}`;
@@ -178,6 +208,7 @@ export function reducer(state: GameState, action: Action): GameState {
           delete nextOrigins[fk];
         }
       }
+      delete nextDisabled[originKey];
       const refundedResources: ResourceMap = {
         ...state.resources,
         credits: state.resources.credits + refund
@@ -195,7 +226,12 @@ export function reducer(state: GameState, action: Action): GameState {
           ...state.buildings,
           [id]: { id, count: count - 1 }
         },
-        map: { ...state.map, placed: nextPlaced, multiTileOrigin: nextOrigins }
+        map: {
+          ...state.map,
+          placed: nextPlaced,
+          multiTileOrigin: nextOrigins,
+          disabled: nextDisabled
+        }
       };
     }
     case "place-road": {

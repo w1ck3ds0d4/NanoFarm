@@ -201,6 +201,11 @@ export interface MapState {
    * caller treats the tile itself as the origin. Used by render +
    * remove + inspector to find the canonical anchor of a building. */
   multiTileOrigin?: Record<string, string>;
+  /** Origin tile keys whose building is currently paused by the
+   * player. Paused buildings: don't consume staff, don't consume
+   * inputs, don't produce outputs, don't draw utilities. Upkeep
+   * still applies (you pay rent on idle buildings). */
+  disabled?: Record<string, true>;
   /** set of road tiles, keyed "x,y". value is always true. */
   roads: Record<string, true>;
 }
@@ -275,6 +280,7 @@ export function makeInitialState(now: number, seed?: number): GameState {
       seed: seed ?? pickSeed(),
       placed: {},
       multiTileOrigin: {},
+      disabled: {},
       roads: {}
     },
     techs: {

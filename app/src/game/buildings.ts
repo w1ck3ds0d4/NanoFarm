@@ -38,11 +38,22 @@ export interface BuildingOps {
   powerSupply?: number;
   /** Water-service units supplied per second. Only water_pump. */
   waterSupply?: number;
+  /** Optional input(s) that boost output when available. Drained
+   * only while the boost is active. */
+  boost?: OptionalBoost;
 }
 
 // ─── Job staffing ────────────────────────────────────────────────────────────
 
 export type StaffNeed = Partial<Record<"worker" | "researcher" | "military", number>>;
+
+/** Optional inputs that BOOST production without being required.
+ * Mines / quarries / mills consume tools to swing a bigger output;
+ * an empty stockpile just drops them back to base production. */
+export interface OptionalBoost {
+  consumes: Partial<Record<ResourceId, number>>;
+  multiplier: number;
+}
 
 // ─── Building category for the sidebar ───────────────────────────────────────
 
@@ -154,7 +165,8 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     ops: {
       produces: { wood: 0.5 },
       powerNeed: 1,
-      upkeep: 0.2
+      upkeep: 0.2,
+      boost: { consumes: { tools: 0.05 }, multiplier: 1.6 }
     }
   },
   mine: {
@@ -169,7 +181,8 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     ops: {
       produces: { iron: 0.4 },
       powerNeed: 1,
-      upkeep: 0.3
+      upkeep: 0.3,
+      boost: { consumes: { tools: 0.05 }, multiplier: 1.6 }
     }
   },
   quarry: {
@@ -184,7 +197,8 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     ops: {
       produces: { stone: 0.5 },
       powerNeed: 1,
-      upkeep: 0.3
+      upkeep: 0.3,
+      boost: { consumes: { tools: 0.05 }, multiplier: 1.6 }
     }
   },
   water_pump: {
