@@ -1,4 +1,4 @@
-import type { GameState } from "./state";
+import { BUILDING_IDS, TECH_IDS, type BuildingId, type GameState, type TechId } from "./state";
 import { DEFAULT_MAP_SIZE } from "./map";
 
 export type SaveVersion = 1;
@@ -48,6 +48,37 @@ export function hydrateMissingFields(state: GameState): GameState {
         house: { id: "house", count: 0 }
       }
     };
+  }
+  // Backfill any BuildingId added since the save was written (lab,
+  // lumber_mill, quarry, granary, market, factory all arrived after
+  // the initial release).
+  let buildingsPatch: typeof next.buildings | null = null;
+  for (const id of BUILDING_IDS) {
+    if (!next.buildings[id]) {
+      if (!buildingsPatch) buildingsPatch = { ...next.buildings };
+      buildingsPatch[id] = { id: id as BuildingId, count: 0 };
+    }
+  }
+  if (buildingsPatch) {
+    next = { ...next, buildings: buildingsPatch };
+  }
+  // Backfill the tech tree state for saves from before research was a
+  // thing. Everything starts un-researched.
+  if (!next.techs) {
+    const techs = {} as Record<TechId, boolean>;
+    for (const t of TECH_IDS) techs[t] = false;
+    next = { ...next, techs };
+  } else {
+    let techsPatch: typeof next.techs | null = null;
+    for (const t of TECH_IDS) {
+      if (next.techs[t] === undefined) {
+        if (!techsPatch) techsPatch = { ...next.techs };
+        techsPatch[t] = false;
+      }
+    }
+    if (techsPatch) {
+      next = { ...next, techs: techsPatch };
+    }
   }
   if (typeof next.meta.population !== "number") {
     next = { ...next, meta: { ...next.meta, population: 0 } };

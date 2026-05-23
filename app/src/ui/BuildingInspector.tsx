@@ -49,7 +49,20 @@ export function BuildingInspector({
   const def = BUILDING_DEFS[id];
   const isConnected = connected.has(inspectKey);
   const neighbors = neighborTerrains(terrain, state.map.width, state.map.height, x, y);
-  const rates = productionFor(id, neighbors);
+  // 4-cardinal building neighbors drive granary/market adjacency
+  // bonuses, mirroring computeProduction in game/state.ts.
+  const bn = { granary: 0, market: 0 };
+  for (const [nx, ny] of [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1],
+  ]) {
+    const nid = state.map.placed[`${nx},${ny}`];
+    if (nid === "granary") bn.granary++;
+    else if (nid === "market") bn.market++;
+  }
+  const rates = productionFor(id, neighbors, bn);
 
   // Count each terrain type in the 8 neighbors so the player can see
   // "this farm hits 3 forests + 1 water" without doing the eyeballing.

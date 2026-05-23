@@ -694,3 +694,148 @@ button:disabled {
   flex-direction: column;
   gap: 6px;
 }
+
+/* ============ RESEARCH PANEL ============ */
+.research-panel {
+  position: absolute;
+  top: 44px;
+  left: 8px;
+  right: 8px;
+  max-height: calc(100% - 90px);
+  overflow-y: auto;
+  background: rgba(8, 14, 20, 0.96);
+  border: 1px solid #6acccf;
+  padding: 10px;
+  z-index: 6;
+  color: #88c0c5;
+  font-size: 11px;
+}
+
+.rp-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #18484c;
+}
+
+.rp-title {
+  color: #b8f0ff;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.rp-balance {
+  flex: 1;
+  color: #6acccf;
+}
+
+.rp-close {
+  background: transparent;
+  border: 1px solid #18484c;
+  color: #88c0c5;
+  padding: 1px 8px;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.rp-close:hover {
+  background: #102428;
+  color: #b8f0ff;
+}
+
+.rp-hint {
+  color: #6acccf;
+  font-size: 10px;
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.rp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.rp-card {
+  background: rgba(16, 28, 32, 0.8);
+  border: 1px solid #18484c;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rp-card.researched {
+  border-color: #ccff44;
+  opacity: 0.7;
+}
+
+.rp-card.locked {
+  opacity: 0.55;
+}
+
+.rp-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.rp-card-title {
+  color: #b8f0ff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.rp-card-cost {
+  color: #6acccf;
+  font-size: 10px;
+}
+
+.rp-card.researched .rp-card-cost {
+  color: #ccff44;
+}
+
+.rp-card-desc {
+  color: #88c0c5;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.rp-card-unlocks {
+  color: #6acccf;
+  font-size: 10px;
+  text-transform: lowercase;
+}
+
+.rp-card-prereqs {
+  color: #557a7e;
+  font-size: 9px;
+  text-transform: lowercase;
+}
+
+.rp-research-btn {
+  margin-top: 4px;
+  background: transparent;
+  border: 1px solid #6acccf;
+  color: #b8f0ff;
+  padding: 4px 8px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.rp-research-btn:hover:not(:disabled) {
+  background: #18484c;
+}
+
+.rp-research-btn:disabled {
+  border-color: #18484c;
+  color: #3a5a5e;
+  cursor: not-allowed;
+}
+

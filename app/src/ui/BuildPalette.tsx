@@ -19,8 +19,11 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
         const owned = state.buildings[id].count;
         const atCap = def.maxCount !== undefined && owned >= def.maxCount;
         const cost = costFor(def, owned);
-        const unlocked =
+        const resourceUnlocked =
           !def.unlock || state.resources[def.unlock.resource] >= def.unlock.gte;
+        const techUnlocked =
+          !def.requiresTech || state.techs[def.requiresTech];
+        const unlocked = resourceUnlocked && techUnlocked;
         const canAfford = state.resources.credits >= cost;
         const isSelected = selected === id;
         // gate everything except `main` behind a placed main building.

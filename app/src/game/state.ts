@@ -4,10 +4,18 @@ import {
   type EventEffect,
   type ResourceMap,
   type ResourceId,
+  type TechId,
   MATERIAL_IDS,
   makeInitialState
 } from "@nanofarm/shared";
-import { BUILDING_DEFS, ROAD_COST, costFor, productionFor } from "./buildings";
+import {
+  BUILDING_DEFS,
+  ROAD_COST,
+  TECH_DEFS,
+  costFor,
+  productionFor,
+  type NeighborBuildings
+} from "./buildings";
 
 export type Action =
   | { type: "hydrate"; state: GameState }
@@ -21,6 +29,7 @@ export type Action =
   | { type: "place-building"; building: BuildingId; x: number; y: number }
   | { type: "remove-building"; x: number; y: number }
   | { type: "place-road"; x: number; y: number }
+  | { type: "research-tech"; tech: TechId }
   | { type: "queue-event"; eventId: string }
   | { type: "open-event"; eventId: string }
   | { type: "resolve-event"; eventId: string }
@@ -70,6 +79,9 @@ export function reducer(state: GameState, action: Action): GameState {
       const def = BUILDING_DEFS[action.building];
       const owned = state.buildings[action.building].count;
       if (def.maxCount !== undefined && owned >= def.maxCount) return state;
+      // Tech-gated buildings stay un-placeable until their tech is
+      // researched, even if the player conjures the action elsewhere.
+      if (def.requiresTech && !state.techs[def.requiresTech]) return state;
       const cost = costFor(def, owned);
       if (state.resources.credits < cost) return state;
       const key = `${action.x},${action.y}`;
@@ -174,6 +186,24 @@ export function reducer(state: GameState, action: Action): GameState {
         }
       };
     }
+    case "research-tech": {
+      const def = TECH_DEFS[action.tech];
+      if (!def) return state;
+      if (state.techs[action.tech]) return state; // already researched
+      if (state.resources.research < def.cost) return state;
+      // Prereqs must all be researched first.
+      for (const p of def.prereqs) {
+        if (!state.techs[p]) return state;
+      }
+      return {
+        ...state,
+        resources: {
+          ...state.resources,
+          research: state.resources.research - def.cost
+        },
+        techs: { ...state.techs, [action.tech]: true }
+      };
+    }
     case "queue-event": {
       if (state.events.firedIds.includes(action.eventId)) return state;
       if (state.events.queuedIds.includes(action.eventId)) return state;
@@ -263,6 +293,28 @@ export function reducer(state: GameState, action: Action): GameState {
   }
 }
 
+/** Count the 4-cardinal neighbours of (x, y) that are granaries or
+ * markets, for district-style adjacency bonuses in productionFor. */
+function neighborBuildingsAt(
+  state: GameState,
+  x: number,
+  y: number
+): NeighborBuildings {
+  const out: NeighborBuildings = { granary: 0, market: 0 };
+  const around: Array<[number, number]> = [
+    [x - 1, y],
+    [x + 1, y],
+    [x, y - 1],
+    [x, y + 1]
+  ];
+  for (const [nx, ny] of around) {
+    const id = state.map.placed[`${nx},${ny}`];
+    if (id === "granary") out.granary++;
+    else if (id === "market") out.market++;
+  }
+  return out;
+}
+
 export function computeProduction(
   state: GameState,
   connected: Set<string>,
@@ -274,7 +326,7 @@ export function computeProduction(
     if (id === "main") continue; // main itself does not produce
     if (!connected.has(key)) continue; // disconnected buildings are idle
     const [x, y] = key.split(",").map(Number);
-    const rules = productionFor(id, neighborsAt(x, y));
+    const rules = productionFor(id, neighborsAt(x, y), neighborBuildingsAt(state, x, y));
     for (const k of Object.keys(rules) as ResourceId[]) {
       const v = rules[k] ?? 0;
       out[k] += v * dtSec;

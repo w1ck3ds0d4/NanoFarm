@@ -10,6 +10,9 @@ export const TILE_W = 32;
 export const TILE_H = 16;
 export const BUILDING_HEIGHT = 18;
 export const MAIN_BUILDING_HEIGHT = 26;
+/** Visually-tall buildings (factory, lab) use this taller silhouette so
+ * the player can tell at a glance that the building is industrial scale. */
+export const TALL_BUILDING_HEIGHT = 38;
 
 function drawDiamond(g: Graphics, color: number, alpha = 1): void {
   g.poly([
@@ -172,17 +175,71 @@ const HOUSE_PALETTE: BuildingPalette = {
   accent: 0xeed8b8
 };
 
+const LAB_PALETTE: BuildingPalette = {
+  top: 0x6acccf,
+  right: 0x267278,
+  left: 0x18484c,
+  accent: 0xb8f0ff
+};
+
+const LUMBER_MILL_PALETTE: BuildingPalette = {
+  top: 0x6a4a28,
+  right: 0x4a3018,
+  left: 0x2e1c0e,
+  accent: 0xb8884a
+};
+
+const QUARRY_PALETTE: BuildingPalette = {
+  top: 0xa0a8b0,
+  right: 0x60686e,
+  left: 0x3a4046,
+  accent: 0xd8e0e8
+};
+
+const GRANARY_PALETTE: BuildingPalette = {
+  top: 0xdcb858,
+  right: 0x9a7c30,
+  left: 0x5e4a18,
+  accent: 0xfff0a8
+};
+
+const MARKET_PALETTE: BuildingPalette = {
+  top: 0xc848a8,
+  right: 0x8a2078,
+  left: 0x4a1040,
+  accent: 0xffc0e8
+};
+
+const FACTORY_PALETTE: BuildingPalette = {
+  top: 0x707880,
+  right: 0x3a4048,
+  left: 0x1a1e22,
+  accent: 0xff8830
+};
+
+const PALETTES: Record<BuildingId, BuildingPalette> = {
+  main: MAIN_PALETTE,
+  farm: FARM_PALETTE,
+  mine: MINE_PALETTE,
+  house: HOUSE_PALETTE,
+  lab: LAB_PALETTE,
+  lumber_mill: LUMBER_MILL_PALETTE,
+  quarry: QUARRY_PALETTE,
+  granary: GRANARY_PALETTE,
+  market: MARKET_PALETTE,
+  factory: FACTORY_PALETTE
+};
+
+function buildingHeight(kind: BuildingId): number {
+  if (kind === "main") return MAIN_BUILDING_HEIGHT;
+  if (kind === "factory" || kind === "lab") return TALL_BUILDING_HEIGHT;
+  return BUILDING_HEIGHT;
+}
+
 export function drawIsoBuilding(g: Graphics, kind: BuildingId, dim = false): void {
   g.clear();
-  const p =
-    kind === "farm"
-      ? FARM_PALETTE
-      : kind === "mine"
-      ? MINE_PALETTE
-      : kind === "house"
-      ? HOUSE_PALETTE
-      : MAIN_PALETTE;
-  const H = kind === "main" ? MAIN_BUILDING_HEIGHT : BUILDING_HEIGHT;
+  const p = PALETTES[kind];
+  const H = buildingHeight(kind);
   const alpha = dim ? 0.45 : 1;
 
   // right (SE) face
@@ -219,10 +276,62 @@ export function drawIsoBuilding(g: Graphics, kind: BuildingId, dim = false): voi
     g.rect(TILE_W / 2 - 5, TILE_H / 2 - H - 1, 10, 2);
     g.fill({ color: p.accent, alpha });
   } else if (kind === "house") {
-    // house: door + window accents on the front faces
     g.rect(TILE_W / 2 + 2, TILE_H / 2 - 2, 3, 5);
     g.fill({ color: p.accent, alpha });
     g.rect(TILE_W / 4 - 1, TILE_H / 2 - 3, 3, 3);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "lab") {
+    // Lab: tall silhouette with a glowing window grid and a satellite
+    // dish on top so it reads as research, not a generic tower.
+    g.rect(TILE_W / 2 - 4, -H + 2, 8, 2);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 1, -H - 4, 2, 4);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 5, -H + 8, 2, 2);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 + 3, -H + 8, 2, 2);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "lumber_mill") {
+    // Lumber mill: pitched accent suggesting a saw or roof peak.
+    g.poly([
+      TILE_W / 2 - 5, TILE_H / 2 - H + 2,
+      TILE_W / 2 + 5, TILE_H / 2 - H + 2,
+      TILE_W / 2, TILE_H / 2 - H - 5
+    ]);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 4, TILE_H / 2 - 1, 8, 2);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "quarry") {
+    // Quarry: stepped stone pile suggesting cut blocks.
+    g.rect(TILE_W / 2 - 6, TILE_H / 2 - H - 1, 12, 2);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 3, TILE_H / 2 - H - 4, 6, 3);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "granary") {
+    // Granary: short squat silo dot on top.
+    g.circle(TILE_W / 2, TILE_H / 2 - H - 1, 4);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 4, TILE_H / 2 - 2, 8, 2);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "market") {
+    // Market: striped awning + small flag.
+    g.rect(TILE_W / 2 - 6, TILE_H / 2 - H - 1, 12, 2);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 1, TILE_H / 2 - H - 6, 1, 5);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2, TILE_H / 2 - H - 6, 4, 2);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "factory") {
+    // Factory: two smokestacks puffing out the top of the tall sprite.
+    g.rect(TILE_W / 2 - 6, -H, 4, 6);
+    g.fill({ color: p.left, alpha });
+    g.rect(TILE_W / 2 + 2, -H + 2, 4, 4);
+    g.fill({ color: p.left, alpha });
+    g.rect(TILE_W / 2 - 5, -H - 3, 2, 3);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 + 3, -H - 1, 2, 3);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 4, TILE_H / 2 - 3, 8, 3);
     g.fill({ color: p.accent, alpha });
   } else {
     // main: peaked accent in center

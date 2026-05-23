@@ -20,6 +20,7 @@ import { BuildPalette, type Placeable } from "./ui/BuildPalette";
 import { BuildingInspector } from "./ui/BuildingInspector";
 import { BuildingTooltip } from "./ui/BuildingTooltip";
 import { MaterialsOverlay } from "./ui/MaterialsOverlay";
+import { ResearchPanel } from "./ui/ResearchPanel";
 
 const STAGE_W = 500;
 const STAGE_H = 400;
@@ -43,6 +44,7 @@ export function App() {
   const [buildOpen, setBuildOpen] = useState(false);
   const [selected, setSelected] = useState<Placeable | null>(null);
   const [materialsOpen, setMaterialsOpen] = useState(false);
+  const [researchOpen, setResearchOpen] = useState(false);
   // Tile-key of the building the player is currently inspecting, or
   // null. Opened by tapping a placed building when nothing is
   // selected for placement; closed by the panel's close button, by
@@ -248,10 +250,14 @@ export function App() {
                 {Math.floor(state.meta.population)}/{popCap}
               </span>
             </span>
-            <span className="rb-cell">
+            <button
+              type="button"
+              className={"rb-cell rb-clickable" + (researchOpen ? " active" : "")}
+              onClick={() => setResearchOpen((o) => !o)}
+            >
               <span className="rb-key">research</span>
               <span className="rb-val">{Math.floor(state.resources.research)}</span>
-            </span>
+            </button>
           </div>
           <div className="hook-status">
             {hookStatus === "connected" && <span className="hook-ok">hook on</span>}
@@ -265,6 +271,14 @@ export function App() {
         </div>
 
         {materialsOpen && <MaterialsOverlay state={state} />}
+
+        {researchOpen && (
+          <ResearchPanel
+            state={state}
+            onResearch={(tech) => dispatch({ type: "research-tech", tech })}
+            onClose={() => setResearchOpen(false)}
+          />
+        )}
 
         {inspected !== null && state.map.placed[inspected] && (
           <BuildingInspector
@@ -299,7 +313,7 @@ export function App() {
               "click a green tile to place your main building."}
             {selected === "road" &&
               "click a tile adjacent to main, an existing road, or a building."}
-            {(selected === "farm" || selected === "mine" || selected === "house") &&
+            {selected !== "main" && selected !== "road" &&
               "click a green tile adjacent to main or a road."}
           </div>
         )}

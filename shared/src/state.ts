@@ -33,9 +33,45 @@ export function totalMaterials(r: ResourceMap): number {
   return r.wood + r.iron + r.stone + r.water + r.potatoes;
 }
 
-export type BuildingId = "main" | "farm" | "mine" | "house";
+export type BuildingId =
+  | "main"
+  | "farm"
+  | "mine"
+  | "house"
+  | "lab"
+  | "lumber_mill"
+  | "quarry"
+  | "granary"
+  | "market"
+  | "factory";
 
-export const BUILDING_IDS: readonly BuildingId[] = ["main", "farm", "mine", "house"] as const;
+export const BUILDING_IDS: readonly BuildingId[] = [
+  "main",
+  "farm",
+  "mine",
+  "house",
+  "lab",
+  "lumber_mill",
+  "quarry",
+  "granary",
+  "market",
+  "factory",
+] as const;
+
+export type TechId =
+  | "agriculture"
+  | "industry"
+  | "commerce"
+  | "heavy_industry";
+
+export const TECH_IDS: readonly TechId[] = [
+  "agriculture",
+  "industry",
+  "commerce",
+  "heavy_industry",
+] as const;
+
+export type TechState = Record<TechId, boolean>;
 
 export interface BuildingState {
   id: BuildingId;
@@ -81,6 +117,7 @@ export interface GameState {
   buildings: BuildingsState;
   events: EventsState;
   map: MapState;
+  techs: TechState;
 }
 
 function pickSeed(): number {
@@ -106,7 +143,13 @@ export function makeInitialState(now: number, seed?: number): GameState {
       main: { id: "main", count: 0 },
       farm: { id: "farm", count: 0 },
       mine: { id: "mine", count: 0 },
-      house: { id: "house", count: 0 }
+      house: { id: "house", count: 0 },
+      lab: { id: "lab", count: 0 },
+      lumber_mill: { id: "lumber_mill", count: 0 },
+      quarry: { id: "quarry", count: 0 },
+      granary: { id: "granary", count: 0 },
+      market: { id: "market", count: 0 },
+      factory: { id: "factory", count: 0 }
     },
     events: {
       firedIds: [],
@@ -120,6 +163,12 @@ export function makeInitialState(now: number, seed?: number): GameState {
       seed: seed ?? pickSeed(),
       placed: {},
       roads: {}
+    },
+    techs: {
+      agriculture: false,
+      industry: false,
+      commerce: false,
+      heavy_industry: false
     }
   };
 }
