@@ -206,7 +206,10 @@ export function Stage({
     if (!prev || prev.x !== tx || prev.y !== ty) {
       hoverRef.current = { x: tx, y: ty };
       propsRef.current.onHoverChange?.({ tx, ty });
-      if (propsRef.current.selectMode !== null) doRender();
+      // Repaint on every tile transition - placement preview needs
+      // it AND the hover building outline needs it. Cheap because
+      // it's bounded by tile transitions (not pixel moves).
+      doRender();
     }
   }
 

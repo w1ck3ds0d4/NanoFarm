@@ -22,6 +22,10 @@ export interface Scene {
   /** Single overlay graphic that draws an outline on the inspected
    * tile. Lives above buildings so the outline is never occluded. */
   selectionOverlay: Graphics;
+  /** Lighter outline drawn when the cursor hovers a placed building
+   * (suppressed during placement mode and when inspector is open
+   * so the rings do not stack). */
+  hoverOverlay: Graphics;
 }
 
 export interface RenderParams {
@@ -53,9 +57,12 @@ export function mountScene(app: Application): Scene {
   buildingsLayer.sortableChildren = true;
   const selectionOverlay = new Graphics();
   selectionOverlay.visible = false;
+  const hoverOverlay = new Graphics();
+  hoverOverlay.visible = false;
   root.addChild(ground);
   root.addChild(roadsLayer);
   root.addChild(buildingsLayer);
+  root.addChild(hoverOverlay);
   root.addChild(selectionOverlay);
   app.stage.addChild(root);
   return {
@@ -67,7 +74,8 @@ export function mountScene(app: Application): Scene {
     groundPool: new Map(),
     roadsPool: new Map(),
     buildingsPool: new Map(),
-    selectionOverlay
+    selectionOverlay,
+    hoverOverlay
   };
 }
 
@@ -370,5 +378,55 @@ export function renderScene(scene: Scene, p: RenderParams): void {
     sel.visible = true;
   } else {
     sel.visible = false;
+  }
+
+  // ============ hover highlight ============
+  // Thin white-ish outline around the building under the cursor,
+  // so the player can see which building they're about to interact
+  // with. Suppressed during placement mode (the placement preview
+  // is doing the work there) and when the inspector is already
+  // showing the same building (the gold dashed ring is enough).
+  const hov = scene.hoverOverlay;
+  const hoverKeyRaw =
+    p.hoverX !== null && p.hoverY !== null
+      ? `${p.hoverX},${p.hoverY}`
+      : null;
+  const origins = p.state.map.multiTileOrigin ?? {};
+  const hoverOriginKey =
+    hoverKeyRaw && p.state.map.placed[hoverKeyRaw]
+      ? origins[hoverKeyRaw] ?? hoverKeyRaw
+      : null;
+  const showHover =
+    hoverOriginKey !== null &&
+    p.selectMode === null &&
+    hoverOriginKey !== p.inspectKey;
+  if (showHover && hoverOriginKey) {
+    const id = p.state.map.placed[hoverOriginKey];
+    const N = buildingSize(id);
+    const [hxStr, hyStr] = hoverOriginKey.split(",");
+    const hx = Number(hxStr);
+    const hy = Number(hyStr);
+    hov.clear();
+    hov.poly([
+      TILE_W / 2, 1,
+      ((N + 1) * TILE_W) / 2 - 1, (N * TILE_H) / 2,
+      TILE_W / 2, N * TILE_H - 1,
+      -((N - 1) * TILE_W) / 2 + 1, (N * TILE_H) / 2,
+    ]);
+    hov.stroke({ width: 1.5, color: 0xffffff, alpha: 0.85 });
+    const { sx, sy } = tileToScreen(
+      hx,
+      hy,
+      p.cameraX,
+      p.cameraY,
+      p.canvasW,
+      p.canvasH,
+      p.zoom,
+    );
+    hov.position.set(sx, sy);
+    hov.scale.set(p.zoom);
+    hov.visible = true;
+  } else {
+    hov.visible = false;
   }
 }
