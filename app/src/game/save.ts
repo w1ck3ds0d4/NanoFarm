@@ -1,6 +1,7 @@
 import type { GameState, SaveBlob } from "@nanofarm/shared";
 import { CURRENT_SAVE_VERSION, hydrateMissingFields, makeInitialState } from "@nanofarm/shared";
 import type { StorageAdapter } from "../adapter/storage";
+import { APP_VERSION } from "../version";
 
 const SAVE_INTERVAL_MS = 5000;
 
@@ -43,7 +44,8 @@ export class SaveLoop {
     const blob: SaveBlob = {
       version: CURRENT_SAVE_VERSION,
       savedAt,
-      state: this.getState()
+      state: this.getState(),
+      appVersion: APP_VERSION
     };
     await this.adapter.save(blob);
     this.onSaved?.(savedAt);

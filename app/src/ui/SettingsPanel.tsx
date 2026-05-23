@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { APP_VERSION } from "../version";
 
 type HookStatus = "unavailable" | "disconnected" | "connected";
 
@@ -35,6 +36,7 @@ export function SettingsPanel({
     <div className="settings-panel">
       <div className="sp-header">
         <span className="sp-title">SETTINGS</span>
+        <span className="sp-version">v{APP_VERSION}</span>
         <button className="sp-close" onClick={onClose} aria-label="close">
           ×
         </button>

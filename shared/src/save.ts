@@ -12,6 +12,11 @@ export interface SaveBlob {
   version: SaveVersion;
   savedAt: number;
   state: GameState;
+  /** App version (from package.json) that wrote this save. Optional
+   * because pre-versioned v2 saves don't have it. Useful for triage
+   * / bug reports - knowing which build wrote a broken save makes
+   * it possible to track down regressions. */
+  appVersion?: string;
 }
 
 /**

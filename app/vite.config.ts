@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
+import pkg from "./package.json" with { type: "json" };
 
 export default defineConfig({
   plugins: [react(), tsconfigPaths()],
@@ -15,5 +16,11 @@ export default defineConfig({
   // dev`) and standalone preview still work because Vite's dev
   // server serves from the same origin regardless.
   base: "./",
-  build: { target: "es2022", outDir: "dist", sourcemap: true }
+  build: { target: "es2022", outDir: "dist", sourcemap: true },
+  // Inject the app version from package.json at build time so the
+  // settings panel + save blob can show it without a runtime
+  // package.json fetch.
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version)
+  }
 });
