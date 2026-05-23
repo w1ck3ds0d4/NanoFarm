@@ -103,27 +103,38 @@ function buildHtml(webview: vscode.Webview, distPath: string): string {
   const raw = fs.readFileSync(indexPath, "utf8");
   const cspSource = webview.cspSource;
 
-  // Resolve `./foo/bar.js` -> `vscode-webview://.../foo/bar.js`. We
-  // do not touch absolute or external URLs.
-  const rewritten = raw.replace(/(src|href)="\.\/([^"]+)"/g, (_full, attr, rel) => {
+  // Resolve `./foo/bar.js` -> `vscode-webview://.../foo/bar.js`.
+  let rewritten = raw.replace(/(src|href)="\.\/([^"]+)"/g, (_full, attr, rel) => {
     const onDisk = vscode.Uri.file(path.join(distPath, rel));
     return `${attr}="${webview.asWebviewUri(onDisk)}"`;
   });
 
-  // Strip any existing CSP meta tag, then prepend our own. Vite's
-  // index.html does not normally ship a CSP meta, but if a future
-  // build adds one we still want to override it for the webview.
+  // Vite emits `<script ... crossorigin>` and `<link ... crossorigin>`.
+  // In the webview the document origin and the asset origin differ, and
+  // vscode-resource responses don't include CORS headers, so the
+  // crossorigin attribute makes the browser refuse to execute the
+  // script. Strip it.
+  rewritten = rewritten.replace(/\s+crossorigin(="[^"]*")?/g, "");
+
+  // CSP for the webview. Pixi.js 8 needs wasm-unsafe-eval for some
+  // codepaths and may spin up worker scripts for async asset loading.
   const csp =
     `default-src 'none'; ` +
     `img-src ${cspSource} https: data: blob:; ` +
-    `script-src ${cspSource} 'unsafe-inline'; ` +
+    `script-src ${cspSource} 'unsafe-inline' 'wasm-unsafe-eval'; ` +
     `style-src ${cspSource} 'unsafe-inline'; ` +
-    `font-src ${cspSource}; ` +
-    `connect-src ${cspSource};`;
+    `font-src ${cspSource} data:; ` +
+    `worker-src ${cspSource} blob:; ` +
+    `connect-src ${cspSource} blob: data:;`;
+
+  // Heartbeat: surfaces in webview devtools (Command Palette ->
+  // Developer: Open Webview Developer Tools) so we can tell whether
+  // the document parses scripts at all when the UI looks blank.
+  const heartbeat = `<script>console.log("nanofarm: html booted");</script>`;
 
   return rewritten.replace(
     /<head>/,
-    `<head>\n    <meta http-equiv="Content-Security-Policy" content="${csp}">`,
+    `<head>\n    <meta http-equiv="Content-Security-Policy" content="${csp}">\n    ${heartbeat}`,
   );
 }
 
