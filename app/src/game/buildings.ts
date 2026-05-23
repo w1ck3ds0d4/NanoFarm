@@ -303,11 +303,14 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     id: "academy",
     label: "Academy",
     category: "people",
-    requiresTech: "education",
     baseCost: 150,
     costGrowth: 1.22,
     materialCost: { wood: 4, stone: 2 },
+    unlock: { resource: "credits", gte: 120 },
     ops: { upkeep: 0.5, powerNeed: 1 }
+    // No tech gate: without academy you can't train researchers,
+    // and without researchers you can't run labs (which would lock
+    // out the whole tech tree). Academy unlocks at 120 cr instead.
   },
   barracks: {
     id: "barracks",
@@ -428,11 +431,21 @@ export const TECH_DEFS: Record<TechId, TechDef> = {
   education: {
     id: "education",
     label: "Education",
-    description: "Higher learning. Unlocks the Academy, which trains researchers (lab staff).",
+    description: "Higher learning. Boosts every Research Lab's output by +50%.",
     cost: 60,
     prereqs: ["agriculture"],
-    unlocks: ["academy"]
+    unlocks: []
   }
+};
+
+/** Per-tech production multiplier applied citywide. Read by
+ * simulateTick when computing produces. Empty buildings list +
+ * a passive multiplier is how techs like Education stay useful
+ * without unlocking new buildings. */
+export const TECH_PRODUCTION_BONUS: Partial<
+  Record<TechId, { building: BuildingId; multiplier: number }>
+> = {
+  education: { building: "lab", multiplier: 1.5 }
 };
 
 // ─── Per-resident consumption + rent ────────────────────────────────────────

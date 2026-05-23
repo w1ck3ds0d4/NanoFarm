@@ -41,7 +41,8 @@ import {
   POP_DEMAND,
   POP_GROWTH_RATE,
   RENT_PER_RESIDENT,
-  SCHOOL_TRAIN_RATE
+  SCHOOL_TRAIN_RATE,
+  TECH_PRODUCTION_BONUS
 } from "./buildings";
 import { legacyBonus } from "./cities";
 
@@ -293,17 +294,26 @@ export function simulateTick(
     }
     if (def.ops.produces) {
       // Granary district bonus: each 4-cardinal neighbour granary
-      // adds +50% to a farm's food output, capped at +200%. Re-wired
-      // here in the new sim engine; the old productionFor() flow is
-      // dead.
+      // adds +50% to a farm's food output, capped at +200%.
       const granaryBonus =
         lb.id === "farm" ? farmGranaryBonus(state, lb.key) : 1;
+      // Tech-based production bonus (e.g. Education -> +50% lab
+      // research). Looks up TECH_PRODUCTION_BONUS for any tech that
+      // is researched AND targets this building.
+      let techMult = 1;
+      for (const [techId, bonus] of Object.entries(TECH_PRODUCTION_BONUS)) {
+        if (!bonus) continue;
+        if (bonus.building !== lb.id) continue;
+        if (state.techs[techId as keyof typeof state.techs]) {
+          techMult *= bonus.multiplier;
+        }
+      }
       for (const [res, amt] of Object.entries(def.ops.produces)) {
         const mult = res === "food" ? granaryBonus : 1;
         add(
           deltas,
           res as ResourceId,
-          (amt ?? 0) * runRatio * legacyMult * boostMult * mult * dtSec,
+          (amt ?? 0) * runRatio * legacyMult * boostMult * mult * techMult * dtSec,
         );
       }
     }
