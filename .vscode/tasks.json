@@ -2,12 +2,13 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build extension",
+      "label": "Reinstall NanoFarm extension",
+      "detail": "Build VSIX and install into the current VS Code. Reload window after.",
       "type": "shell",
       "command": "pnpm",
-      "args": ["--filter", "nanofarm-extension", "build"],
+      "args": ["--filter", "nanofarm-extension", "reinstall"],
       "options": { "cwd": "${workspaceFolder}" },
-      "presentation": { "reveal": "silent", "panel": "dedicated" },
+      "presentation": { "reveal": "always", "panel": "dedicated" },
       "problemMatcher": ["$tsc"]
     }
   ]
