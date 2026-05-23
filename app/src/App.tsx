@@ -34,16 +34,18 @@ const DEFAULT_ZOOM = 1;
 type HookStatus = "unavailable" | "disconnected" | "connected";
 
 /** Renders a tiny "+1.5/s" or "-0.3/s" tag for a resource flow.
- * Hides itself when the rate is essentially zero so the HUD doesn't
- * flicker for resources that aren't moving. */
+ * Always renders (even at 0) so the HUD position doesn't shift
+ * when a resource happens to be flat - players asked for the value
+ * to stay visible regardless. */
 function renderFlow(rate: number): ReactNode {
-  if (Math.abs(rate) < 0.01) return null;
-  const sign = rate > 0 ? "+" : "";
-  const cls = rate > 0 ? "rb-flow up" : "rb-flow down";
+  const flat = Math.abs(rate) < 0.05;
+  const sign = rate > 0 && !flat ? "+" : flat ? "" : "";
+  const cls = flat ? "rb-flow flat" : rate > 0 ? "rb-flow up" : "rb-flow down";
+  const display = flat ? "0.0" : rate.toFixed(1);
   return (
     <span className={cls}>
       {sign}
-      {rate.toFixed(1)}/s
+      {display}/s
     </span>
   );
 }

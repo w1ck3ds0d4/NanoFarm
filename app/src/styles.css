@@ -146,6 +146,10 @@ button:disabled {
   color: #cc6644;
 }
 
+.rb-flow.flat {
+  color: #557722;
+}
+
 /* ============ NEEDS PANEL ============ */
 .needs-panel {
   position: absolute;
@@ -1058,6 +1062,10 @@ button:disabled {
 
 .mp-flow.down {
   color: #cc6644;
+}
+
+.mp-flow.flat {
+  color: #557722;
 }
 
 /* ============ EVENT DIALOG ============ */

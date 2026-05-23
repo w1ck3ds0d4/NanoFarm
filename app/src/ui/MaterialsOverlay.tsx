@@ -80,11 +80,20 @@ export function MaterialsOverlay({ state }: Props) {
             <span className="mp-name">{w.id}</span>
             <span className="mp-val">{Math.floor(w.value)}</span>
             <span className="mp-pct">{Math.floor(w.pct)}%</span>
-            {Math.abs(w.flow) >= 0.01 && (
-              <span className={"mp-flow " + (w.flow > 0 ? "up" : "down")}>
-                {w.flow > 0 ? "+" : ""}{w.flow.toFixed(1)}/s
-              </span>
-            )}
+            <span
+              className={
+                "mp-flow " +
+                (Math.abs(w.flow) < 0.05
+                  ? "flat"
+                  : w.flow > 0
+                    ? "up"
+                    : "down")
+              }
+            >
+              {Math.abs(w.flow) < 0.05
+                ? "0.0/s"
+                : `${w.flow > 0 ? "+" : ""}${w.flow.toFixed(1)}/s`}
+            </span>
           </div>
         ))}
       </div>
