@@ -7,20 +7,36 @@
  * `index.html`, rewrites asset URLs to the webview-safe form via
  * `asWebviewUri`, and serves the result.
  *
- * Save state is bridged through `postMessage`:
- *   webview -> extension : { type: "storage.load" | "storage.save" | "storage.clear", reqId, blob? }
- *   extension -> webview : { type: "storage.result", reqId, blob? }
+ * Two postMessage bridges connect the webview to native APIs that
+ * the sandboxed iframe can't reach on its own:
  *
- * Persisted in `context.workspaceState` under key `nanofarm.save`,
- * scoped per workspace so two open VS Code windows have independent
- * farms.
+ *   storage:  workspaceState-backed save/load, scoped per workspace.
+ *     webview -> ext: { type: "storage.load|save|clear", reqId, blob? }
+ *     ext -> webview: { type: "storage.result", reqId, blob? }
+ *
+ *   hook:     Claude Code PostToolUse drainer. Reads/truncates the
+ *     player's tokens.jsonl (default ~/.nanofarm/tokens.jsonl) so
+ *     the game can convert AI tool calls into bonus materials. The
+ *     File System Access API isn't available in webview iframes, so
+ *     this bridge replaces the BrowserTokenDrainer used by the
+ *     standalone Vite build.
+ *     webview -> ext: { type: "hook.status|connect|drain|set-path", reqId, path? }
+ *     ext -> webview: { type: "hook.result", reqId, available, connected, lines?, path?, error? }
  */
 
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import * as vscode from "vscode";
 
 const STORAGE_KEY = "nanofarm.save";
+const HOOK_PATH_KEY = "nanofarm.hookPath";
+
+/** Default tokens file: ~/.nanofarm/tokens.jsonl. Matches the path
+ * the shipped hook scripts write to (see hooks/INSTALL.md). */
+function defaultHookPath(): string {
+  return path.join(os.homedir(), ".nanofarm", "tokens.jsonl");
+}
 
 export function activate(context: vscode.ExtensionContext): void {
   const cmd = vscode.commands.registerCommand("nanofarm.open", () => {
@@ -78,6 +94,7 @@ function openPanel(context: vscode.ExtensionContext): void {
 
   panel.webview.onDidReceiveMessage(async (msg: WebviewToExtension) => {
     if (!msg || typeof msg.type !== "string") return;
+
     if (msg.type === "storage.load") {
       const blob = context.workspaceState.get<unknown>(STORAGE_KEY) ?? null;
       panel.webview.postMessage({ type: "storage.result", reqId: msg.reqId, blob });
@@ -87,6 +104,109 @@ function openPanel(context: vscode.ExtensionContext): void {
     } else if (msg.type === "storage.clear") {
       await context.workspaceState.update(STORAGE_KEY, undefined);
       panel.webview.postMessage({ type: "storage.result", reqId: msg.reqId });
+    } else if (msg.type === "hook.status") {
+      const hookPath = context.workspaceState.get<string>(HOOK_PATH_KEY) ?? defaultHookPath();
+      const exists = fs.existsSync(hookPath);
+      panel.webview.postMessage({
+        type: "hook.result",
+        reqId: msg.reqId,
+        available: true,
+        connected: exists,
+        path: hookPath
+      });
+    } else if (msg.type === "hook.connect") {
+      // Player explicitly asked to (re)connect. If the file doesn't
+      // exist yet, surface a hint instead of silently failing - the
+      // hook script is what creates it on first tool call.
+      const hookPath = context.workspaceState.get<string>(HOOK_PATH_KEY) ?? defaultHookPath();
+      const exists = fs.existsSync(hookPath);
+      if (!exists) {
+        panel.webview.postMessage({
+          type: "hook.result",
+          reqId: msg.reqId,
+          available: true,
+          connected: false,
+          path: hookPath,
+          error: `no file at ${hookPath} - install the Claude Code hook (see hooks/INSTALL.md), then run any tool call in Claude Code to create it`
+        });
+        return;
+      }
+      panel.webview.postMessage({
+        type: "hook.result",
+        reqId: msg.reqId,
+        available: true,
+        connected: true,
+        path: hookPath
+      });
+    } else if (msg.type === "hook.drain") {
+      const hookPath = context.workspaceState.get<string>(HOOK_PATH_KEY) ?? defaultHookPath();
+      try {
+        // Read-then-truncate. Race with the hook script is benign:
+        // the hook appends, we truncate from zero. Anything written
+        // between our read and our truncate gets dropped on the
+        // floor (rare, low-stakes).
+        let text = "";
+        try {
+          text = await fs.promises.readFile(hookPath, "utf8");
+        } catch {
+          // file missing or transient error - return no lines
+          panel.webview.postMessage({
+            type: "hook.result",
+            reqId: msg.reqId,
+            available: true,
+            connected: false,
+            lines: []
+          });
+          return;
+        }
+        const lines: Array<{ t: number; tool: string }> = [];
+        if (text.length > 0) {
+          for (const raw of text.split("\n")) {
+            const line = raw.trim();
+            if (!line) continue;
+            try {
+              const obj = JSON.parse(line) as { t?: unknown; tool?: unknown };
+              if (typeof obj.t === "number" && typeof obj.tool === "string") {
+                lines.push({ t: obj.t, tool: obj.tool });
+              }
+            } catch {
+              // skip malformed lines
+            }
+          }
+          await fs.promises.writeFile(hookPath, "", "utf8");
+        }
+        panel.webview.postMessage({
+          type: "hook.result",
+          reqId: msg.reqId,
+          available: true,
+          connected: true,
+          lines
+        });
+      } catch (e) {
+        panel.webview.postMessage({
+          type: "hook.result",
+          reqId: msg.reqId,
+          available: true,
+          connected: false,
+          lines: [],
+          error: String(e)
+        });
+      }
+    } else if (msg.type === "hook.set-path") {
+      const newPath = (msg.path ?? "").trim();
+      if (!newPath) {
+        await context.workspaceState.update(HOOK_PATH_KEY, undefined);
+      } else {
+        await context.workspaceState.update(HOOK_PATH_KEY, newPath);
+      }
+      const resolved = newPath || defaultHookPath();
+      panel.webview.postMessage({
+        type: "hook.result",
+        reqId: msg.reqId,
+        available: true,
+        connected: fs.existsSync(resolved),
+        path: resolved
+      });
     }
   });
 }
@@ -138,4 +258,8 @@ function buildHtml(webview: vscode.Webview, distPath: string): string {
 type WebviewToExtension =
   | { type: "storage.load"; reqId: string }
   | { type: "storage.save"; reqId: string; blob: unknown }
-  | { type: "storage.clear"; reqId: string };
+  | { type: "storage.clear"; reqId: string }
+  | { type: "hook.status"; reqId: string }
+  | { type: "hook.connect"; reqId: string }
+  | { type: "hook.drain"; reqId: string }
+  | { type: "hook.set-path"; reqId: string; path?: string };

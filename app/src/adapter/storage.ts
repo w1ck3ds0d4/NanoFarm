@@ -1,4 +1,5 @@
 import type { SaveBlob } from "@nanofarm/shared";
+import { getVsCodeApi, type VsCodeApi } from "./vscode";
 
 export interface StorageAdapter {
   load(): Promise<SaveBlob | null>;
@@ -25,18 +26,6 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   async clear(): Promise<void> {
     localStorage.removeItem(LS_KEY);
-  }
-}
-
-interface VsCodeApi {
-  postMessage(msg: unknown): void;
-  getState(): unknown;
-  setState(state: unknown): void;
-}
-
-declare global {
-  interface Window {
-    acquireVsCodeApi?: () => VsCodeApi;
   }
 }
 
@@ -86,18 +75,16 @@ export class VsCodeStorageAdapter implements StorageAdapter {
   }
 }
 
-// The VS Code webview only lets acquireVsCodeApi() be called once per
-// document. Cache the handle (and the resulting adapter) at module
-// scope so re-renders, StrictMode double-mounts, and any other
-// repeat callers all share the same instance.
+// Cache so re-renders + StrictMode double-mounts share one adapter.
+// The vscode API singleton itself lives in ./vscode.ts; this just
+// caches the adapter wrapping it.
 let cachedAdapter: StorageAdapter | null = null;
 
 export function createStorageAdapter(): StorageAdapter {
   if (cachedAdapter) return cachedAdapter;
-  if (typeof window !== "undefined" && typeof window.acquireVsCodeApi === "function") {
-    cachedAdapter = new VsCodeStorageAdapter(window.acquireVsCodeApi());
-  } else {
-    cachedAdapter = new LocalStorageAdapter();
-  }
+  const vscode = getVsCodeApi();
+  cachedAdapter = vscode
+    ? new VsCodeStorageAdapter(vscode)
+    : new LocalStorageAdapter();
   return cachedAdapter;
 }

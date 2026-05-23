@@ -1,4 +1,5 @@
 import type { HookLine } from "@nanofarm/shared";
+import { getVsCodeApi, type VsCodeApi } from "../adapter/vscode";
 
 export interface TokenDrainer {
   isAvailable(): boolean;
@@ -111,7 +112,93 @@ export class NullTokenDrainer implements TokenDrainer {
   }
 }
 
+// ─── VS Code extension bridge ───────────────────────────────────────────────
+//
+// When the game runs inside the NanoFarm VS Code extension, the
+// host JS environment doesn't expose showOpenFilePicker (sandboxed
+// iframe), so BrowserTokenDrainer is unusable. Instead the extension
+// itself reads + truncates the player's tokens.jsonl using Node fs
+// APIs and exchanges messages with the webview over postMessage.
+//
+// Protocol (matches extension/src/extension.ts):
+//   webview -> ext: { type: "hook.status|connect|drain|set-path", reqId, path? }
+//   ext -> webview: { type: "hook.result", reqId, available, connected, lines?, path?, error? }
+
+interface HookResultPayload {
+  type: "hook.result";
+  reqId: string;
+  available: boolean;
+  connected: boolean;
+  lines?: HookLine[];
+  path?: string;
+  error?: string;
+}
+
+export class VsCodeTokenDrainer implements TokenDrainer {
+  private vscode: VsCodeApi;
+  private pending = new Map<string, (msg: HookResultPayload) => void>();
+  private nextId = 1;
+  private connectedFlag = false;
+
+  constructor(vscode: VsCodeApi) {
+    this.vscode = vscode;
+    window.addEventListener("message", (e) => {
+      const m = e.data as HookResultPayload | undefined;
+      if (!m || m.type !== "hook.result" || !m.reqId) return;
+      const resolve = this.pending.get(m.reqId);
+      if (!resolve) return;
+      this.pending.delete(m.reqId);
+      resolve(m);
+    });
+  }
+
+  isAvailable(): boolean {
+    return true;
+  }
+
+  isConnected(): boolean {
+    return this.connectedFlag;
+  }
+
+  async restore(): Promise<void> {
+    // Ask the extension what its current view of the world is. If
+    // the hook file already exists on disk, we light up automatically;
+    // the player doesn't have to click 'connect hook' on every reload.
+    const res = await this.request("hook.status");
+    this.connectedFlag = res.connected;
+  }
+
+  async connect(): Promise<void> {
+    const res = await this.request("hook.connect");
+    this.connectedFlag = res.connected;
+    if (!res.connected && res.error) {
+      throw new Error(res.error);
+    }
+  }
+
+  async drain(): Promise<HookLine[]> {
+    const res = await this.request("hook.drain");
+    // Connection state can flap (file deleted between ticks); keep
+    // the flag in sync so the HUD reflects reality.
+    this.connectedFlag = res.connected;
+    return res.lines ?? [];
+  }
+
+  private request(type: "hook.status" | "hook.connect" | "hook.drain"): Promise<HookResultPayload> {
+    return new Promise((resolve) => {
+      const reqId = `h${this.nextId++}`;
+      this.pending.set(reqId, resolve);
+      this.vscode.postMessage({ type, reqId });
+    });
+  }
+}
+
 export function createDrainer(): TokenDrainer {
+  // VS Code webview: bridge through the extension (preferred -
+  // showOpenFilePicker is not available in the sandboxed iframe).
+  const vscode = getVsCodeApi();
+  if (vscode) return new VsCodeTokenDrainer(vscode);
+  // Standalone Chromium (pnpm dev): use the File System Access API.
   if (typeof window !== "undefined" && typeof window.showOpenFilePicker === "function") {
     return new BrowserTokenDrainer();
   }
