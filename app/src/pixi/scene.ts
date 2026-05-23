@@ -391,10 +391,10 @@ export function renderScene(scene: Scene, p: RenderParams): void {
     p.hoverX !== null && p.hoverY !== null
       ? `${p.hoverX},${p.hoverY}`
       : null;
-  const origins = p.state.map.multiTileOrigin ?? {};
+  const hoverOrigins = p.state.map.multiTileOrigin ?? {};
   const hoverOriginKey =
     hoverKeyRaw && p.state.map.placed[hoverKeyRaw]
-      ? origins[hoverKeyRaw] ?? hoverKeyRaw
+      ? hoverOrigins[hoverKeyRaw] ?? hoverKeyRaw
       : null;
   const showHover =
     hoverOriginKey !== null &&
