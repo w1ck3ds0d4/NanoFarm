@@ -17,6 +17,7 @@ interface Props {
   cameraY: number;
   zoom: number;
   selectMode: "building" | "road" | null;
+  inspectKey: string | null;
   width: number;
   height: number;
   onTileClick?: (tx: number, ty: number) => void;
@@ -36,6 +37,7 @@ export function Stage({
   cameraY,
   zoom,
   selectMode,
+  inspectKey,
   width,
   height,
   onTileClick,
@@ -127,6 +129,7 @@ export function Stage({
       hoverX: hoverRef.current?.x ?? null,
       hoverY: hoverRef.current?.y ?? null,
       selectMode,
+      inspectKey,
       canvasW: width,
       canvasH: height
     });
@@ -144,7 +147,7 @@ export function Stage({
     // input (place / pan / zoom / hover / selectMode flip) instead of
     // 60 times per second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.map, terrain, connected, cameraX, cameraY, zoom, selectMode]);
+  }, [state.map, terrain, connected, cameraX, cameraY, zoom, selectMode, inspectKey]);
 
   function localPos(e: React.MouseEvent<HTMLDivElement>): { sx: number; sy: number } {
     const rect = e.currentTarget.getBoundingClientRect();
