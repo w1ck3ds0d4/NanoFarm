@@ -21,32 +21,43 @@ interface RegionShape {
   fill: string;
 }
 
-// Country shape inspired by a vertical administrative map (the user
-// referenced something like Portugal): four stacked regions, each
-// housing one city. Coords assume viewBox 0 0 380 500.
+// Hand-drawn country with four asymmetric regions: a narrow northern
+// peninsula (Aether Spire), a wide industrial midsection bulging east
+// (Iron Reach), a long western coastal strip (Stonehaven), and a
+// southern + eastern lobe (Verdant Valley). Coastline points are
+// deliberately bumpy so the shape reads as a country, not a blob.
+// Coords assume viewBox 0 0 420 520.
 const REGIONS: Record<CityId, RegionShape> = {
   aether_spire: {
+    // Narrow peninsula at the top, with a small inlet on the west side.
     points:
-      "130,40 175,30 225,32 260,55 270,90 245,115 200,120 150,115 105,100 95,75",
-    capital: { x: 185, y: 75 },
+      "180,32 200,22 222,18 245,24 258,38 262,55 258,72 254,88 248,100 235,108 218,112 200,114 182,110 168,102 158,90 150,76 145,60 148,48 158,38 168,32",
+    capital: { x: 205, y: 70 },
     fill: "#4a3870"
   },
   iron_reach: {
+    // Wide industrial midsection, with a pronounced east-coast bulge
+    // for a peninsula and a small bay on the western coast.
     points:
-      "95,75 105,100 150,115 200,120 245,115 270,90 285,130 295,175 270,210 215,225 155,225 105,210 75,180 70,135",
-    capital: { x: 185, y: 165 },
+      "150,76 158,90 168,102 182,110 200,114 218,112 235,108 248,100 254,88 268,86 285,92 305,102 325,114 342,130 358,148 368,168 372,188 362,208 348,222 328,234 308,242 286,244 262,240 240,232 218,226 198,222 178,224 158,228 138,232 118,230 95,220 75,205 60,185 55,165 60,142 72,122 88,108 105,98 118,90 132,84",
+    capital: { x: 215, y: 175 },
     fill: "#525864"
   },
   stonehaven: {
+    // Long western coastal strip - tall and narrow, with several
+    // coastal bays and a small inland inlet on the east where it
+    // meets Verdant Valley.
     points:
-      "75,180 105,210 155,225 215,225 270,210 295,175 305,225 305,280 285,320 220,335 155,335 95,320 65,275 60,225",
-    capital: { x: 185, y: 270 },
+      "55,165 60,185 75,205 95,220 118,230 138,232 158,228 178,224 178,260 175,295 172,330 165,365 152,395 132,420 108,435 80,440 58,430 42,412 28,388 18,360 12,325 16,290 28,255 42,225 50,195",
+    capital: { x: 108, y: 332 },
     fill: "#6a5a3a"
   },
   verdant_valley: {
+    // Largest region: hugs the south + east coast with a deep eastern
+    // peninsula and a small southern peninsula extending down.
     points:
-      "65,275 95,320 155,335 220,335 285,320 305,280 315,335 305,395 270,440 215,465 155,465 105,440 75,400 55,345",
-    capital: { x: 180, y: 390 },
+      "178,224 198,222 218,226 240,232 262,240 286,244 308,242 328,234 348,222 362,208 372,225 382,250 388,278 388,308 382,340 370,375 352,408 328,438 298,460 268,478 238,488 208,490 188,478 178,455 175,420 178,385 182,350 184,315 182,280 180,255",
+    capital: { x: 295, y: 380 },
     fill: "#2e5a1a"
   }
 };
@@ -58,8 +69,8 @@ const DECOR: Record<CityId, React.ReactNode> = {
   verdant_valley: (
     <g key="vv-decor" opacity={0.8} style={{ pointerEvents: "none" }}>
       {[
-        [120, 370], [150, 410], [200, 425], [240, 400], [260, 365],
-        [105, 405], [180, 365], [220, 445]
+        [225, 350], [255, 395], [295, 420], [330, 400], [310, 360],
+        [205, 410], [275, 360], [245, 440], [195, 360], [340, 340]
       ].map(([cx, cy], i) => (
         <circle key={i} cx={cx} cy={cy} r={3} fill="#4a8a2a" />
       ))}
@@ -67,7 +78,7 @@ const DECOR: Record<CityId, React.ReactNode> = {
   ),
   stonehaven: (
     <g key="sh-decor" opacity={0.85} style={{ pointerEvents: "none" }}>
-      {[[140, 250], [185, 240], [230, 250], [165, 300]].map(
+      {[[75, 300], [110, 290], [140, 305], [90, 360], [125, 370]].map(
         ([cx, cy], i) => (
           <polygon
             key={i}
@@ -82,7 +93,7 @@ const DECOR: Record<CityId, React.ReactNode> = {
   ),
   iron_reach: (
     <g key="ir-decor" opacity={0.9} style={{ pointerEvents: "none" }}>
-      {[[150, 195], [185, 200], [225, 190]].map(([cx, cy], i) => (
+      {[[180, 195], [215, 200], [250, 195], [285, 190]].map(([cx, cy], i) => (
         <g key={i}>
           <rect x={cx - 3} y={cy - 14} width={6} height={14} fill="#1a1e22" />
           <circle cx={cx} cy={cy - 18} r={4} fill="#ff8830" opacity={0.7} />
@@ -92,9 +103,9 @@ const DECOR: Record<CityId, React.ReactNode> = {
   ),
   aether_spire: (
     <g key="as-decor" opacity={0.85} style={{ pointerEvents: "none" }}>
-      <polygon points="185,52 180,78 190,78" fill="#aa88ff" />
-      <circle cx={185} cy={48} r={3} fill="#ddccff" />
-      {[[150, 70], [220, 70], [170, 100], [205, 100]].map(([cx, cy], i) => (
+      <polygon points="205,52 200,78 210,78" fill="#aa88ff" />
+      <circle cx={205} cy={48} r={3} fill="#ddccff" />
+      {[[175, 65], [240, 65], [185, 95], [225, 95]].map(([cx, cy], i) => (
         <circle key={i} cx={cx} cy={cy} r={1.5} fill="#ffffff" />
       ))}
     </g>
@@ -137,11 +148,27 @@ export function WorldMapPanel({ state, onTravel, onClose }: Props) {
       <div className="wm-map-wrap">
         <svg
           className="wm-svg"
-          viewBox="0 0 380 500"
+          viewBox="0 0 420 520"
           preserveAspectRatio="xMidYMid meet"
         >
           {/* Ocean / outside */}
-          <rect width={380} height={500} fill="#0a1828" />
+          <rect width={420} height={520} fill="#0a1828" />
+
+          {/* Two small offshore islands for character */}
+          <g opacity={0.75}>
+            <polygon
+              points="378,118 392,112 400,122 398,136 388,142 376,138 370,128"
+              fill="#3a4628"
+              stroke="#e8e8f0"
+              strokeWidth={1}
+            />
+            <polygon
+              points="395,295 408,300 410,312 402,320 392,316"
+              fill="#3a4628"
+              stroke="#e8e8f0"
+              strokeWidth={1}
+            />
+          </g>
 
           {/* Country shadow for depth - draws every region as a single
               dark silhouette offset down-right behind the real map. */}
