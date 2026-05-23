@@ -5,7 +5,7 @@
       "label": "build extension",
       "type": "shell",
       "command": "pnpm",
-      "args": ["--filter", "@nanofarm/extension", "build"],
+      "args": ["--filter", "nanofarm-extension", "build"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": { "reveal": "silent", "panel": "dedicated" },
       "problemMatcher": ["$tsc"]
