@@ -19,6 +19,7 @@ import {
   productionFor,
   type NeighborBuildings
 } from "./buildings";
+import { applyPopulationTick, type PopulationTick } from "./population";
 
 export type Action =
   | { type: "hydrate"; state: GameState }
@@ -26,8 +27,7 @@ export type Action =
       type: "tick";
       now: number;
       produced: ResourceMap;
-      populationDelta: number;
-      foodConsumed: number;
+      popTick: PopulationTick;
     }
   | { type: "place-building"; building: BuildingId; x: number; y: number }
   | { type: "remove-building"; x: number; y: number }
@@ -55,12 +55,9 @@ export function reducer(state: GameState, action: Action): GameState {
       const r = state.resources;
       const nextPotatoes = Math.max(
         0,
-        r.potatoes + action.produced.potatoes - action.foodConsumed
+        r.potatoes + action.produced.potatoes - action.popTick.foodConsumed
       );
-      const nextPopulation = Math.max(
-        0,
-        state.meta.population + action.populationDelta
-      );
+      const nextPopulation = applyPopulationTick(state.meta.population, action.popTick);
       return {
         ...state,
         meta: {
@@ -387,18 +384,47 @@ export function computeProduction(
   dtSec: number
 ): ResourceMap {
   const out = emptyResources();
-  // Prestige multiplier: each settled city left behind adds +5% to
-  // every producer's output. Applied uniformly so the world map's
-  // prestige loop has a tangible global effect.
   const legacyMult = legacyBonus(state.world?.legacy ?? 0);
+
+  // Total demand for each staff type, summed across connected,
+  // staff-needing buildings. Disconnected buildings are idle so they
+  // do not draw staff (matches their production behaviour).
+  let workerDemand = 0;
+  let researcherDemand = 0;
+  let militaryDemand = 0;
   for (const [key, id] of Object.entries(state.map.placed) as [string, BuildingId][]) {
-    if (id === "main") continue; // main itself does not produce
-    if (!connected.has(key)) continue; // disconnected buildings are idle
+    if (id === "main") continue;
+    if (!connected.has(key)) continue;
+    const need = BUILDING_DEFS[id]?.staffNeed;
+    if (!need) continue;
+    workerDemand += need.worker ?? 0;
+    researcherDemand += need.researcher ?? 0;
+    militaryDemand += need.military ?? 0;
+  }
+  const pop = state.meta.population;
+  const workerRatio =
+    workerDemand === 0 ? 1 : Math.min(1, pop.worker / workerDemand);
+  const researcherRatio =
+    researcherDemand === 0 ? 1 : Math.min(1, pop.researcher / researcherDemand);
+  const militaryRatio =
+    militaryDemand === 0 ? 1 : Math.min(1, pop.military / militaryDemand);
+
+  for (const [key, id] of Object.entries(state.map.placed) as [string, BuildingId][]) {
+    if (id === "main") continue;
+    if (!connected.has(key)) continue;
     const [x, y] = key.split(",").map(Number);
     const rules = productionFor(id, neighborsAt(x, y), neighborBuildingsAt(state, x, y));
+    // Buildings with multiple staff types are scaled by the
+    // worst-staffed type, so an understaffed lab pulls every output
+    // down equally.
+    const need = BUILDING_DEFS[id]?.staffNeed;
+    let staffMult = 1;
+    if (need?.worker) staffMult = Math.min(staffMult, workerRatio);
+    if (need?.researcher) staffMult = Math.min(staffMult, researcherRatio);
+    if (need?.military) staffMult = Math.min(staffMult, militaryRatio);
     for (const k of Object.keys(rules) as ResourceId[]) {
       const v = rules[k] ?? 0;
-      out[k] += v * dtSec * legacyMult;
+      out[k] += v * dtSec * legacyMult * staffMult;
     }
   }
   return out;

@@ -3,7 +3,7 @@ import { neighborTerrains } from "@nanofarm/shared";
 import type { Action } from "./state";
 import { computeProduction } from "./state";
 import { computeConnected } from "./connectivity";
-import { computePopulation } from "./population";
+import { computePopulation, type PopulationTick } from "./population";
 import { evaluateTriggers } from "./events";
 import type { TokenDrainer } from "./tokens";
 
@@ -60,18 +60,13 @@ export class GameLoop {
       (x, y) => neighborTerrains(terrain, w, h, x, y),
       dtSec
     );
-    const { populationDelta, foodConsumed } = computePopulation(
-      state,
-      connected,
-      dtSec
-    );
+    const popTick: PopulationTick = computePopulation(state, connected, dtSec);
 
     this.deps.dispatch({
       type: "tick",
       now,
       produced,
-      populationDelta,
-      foodConsumed
+      popTick
     });
 
     if (now - this.lastHookDrain >= HOOK_DRAIN_INTERVAL_MS) {

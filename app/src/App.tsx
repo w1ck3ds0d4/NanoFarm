@@ -5,7 +5,8 @@ import {
   findSpawn,
   terrainAt,
   isBuildable,
-  totalMaterials
+  totalMaterials,
+  totalPopulation
 } from "@nanofarm/shared";
 import { reducer } from "./game/state";
 import { GameLoop } from "./game/loop";
@@ -20,6 +21,7 @@ import { BuildPalette, type Placeable } from "./ui/BuildPalette";
 import { BuildingInspector } from "./ui/BuildingInspector";
 import { BuildingTooltip } from "./ui/BuildingTooltip";
 import { MaterialsOverlay } from "./ui/MaterialsOverlay";
+import { PopulationOverlay } from "./ui/PopulationOverlay";
 import { ResearchPanel } from "./ui/ResearchPanel";
 import { SettingsPanel } from "./ui/SettingsPanel";
 import { WorldMapPanel } from "./ui/WorldMapPanel";
@@ -46,6 +48,7 @@ export function App() {
   const [buildOpen, setBuildOpen] = useState(false);
   const [selected, setSelected] = useState<Placeable | null>(null);
   const [materialsOpen, setMaterialsOpen] = useState(false);
+  const [populationOpen, setPopulationOpen] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [worldOpen, setWorldOpen] = useState(false);
@@ -260,12 +263,16 @@ export function App() {
               <span className="rb-key">materials</span>
               <span className="rb-val">{Math.floor(totalMaterials(state.resources))}</span>
             </button>
-            <span className="rb-cell">
+            <button
+              type="button"
+              className={"rb-cell rb-clickable" + (populationOpen ? " active" : "")}
+              onClick={() => setPopulationOpen((o) => !o)}
+            >
               <span className="rb-key">pop</span>
               <span className="rb-val">
-                {Math.floor(state.meta.population)}/{popCap}
+                {Math.floor(totalPopulation(state.meta.population))}/{popCap}
               </span>
-            </span>
+            </button>
             <button
               type="button"
               className={"rb-cell rb-clickable" + (researchOpen ? " active" : "")}
@@ -278,6 +285,8 @@ export function App() {
         </div>
 
         {materialsOpen && <MaterialsOverlay state={state} />}
+
+        {populationOpen && <PopulationOverlay state={state} />}
 
         {researchOpen && (
           <ResearchPanel

@@ -8,15 +8,22 @@ import type {
 
 export type MaterialCost = Partial<Record<"wood" | "iron" | "stone" | "water", number>>;
 
-export type BuildingCategory = "core" | "harvest" | "tech";
+export type BuildingCategory = "core" | "harvest" | "tech" | "people";
 
-export const BUILDING_CATEGORIES: readonly BuildingCategory[] = ["core", "harvest", "tech"] as const;
+export const BUILDING_CATEGORIES: readonly BuildingCategory[] = ["core", "harvest", "tech", "people"] as const;
 
 export const CATEGORY_LABEL: Record<BuildingCategory, string> = {
   core: "Core",
   harvest: "Harvest",
-  tech: "Tech"
+  tech: "Tech",
+  people: "People"
 };
+
+/** Staffing requirement for a building. Production scales linearly
+ * with the ratio of available workers / required workers (capped at
+ * 1). A building with no entry needs no staff and always runs at
+ * 100%. */
+export type StaffNeed = Partial<Record<"worker" | "researcher" | "military", number>>;
 
 export interface BuildingDef {
   id: BuildingId;
@@ -35,6 +42,10 @@ export interface BuildingDef {
   /** Tech-tree gate. Building is hidden in the palette until the tech is
    * researched. Stackable with `unlock`. */
   requiresTech?: TechId;
+  /** Per-building staffing demand. If the city's trained pop of that
+   * job type cannot cover the global total, every building of this
+   * type produces at the available/needed ratio. */
+  staffNeed?: StaffNeed;
 }
 
 export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
@@ -67,7 +78,8 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     category: "harvest",
     baseCost: 50,
     costGrowth: 1.2,
-    unlock: { resource: "credits", gte: 30 }
+    unlock: { resource: "credits", gte: 30 },
+    staffNeed: { worker: 1 }
   },
   mine: {
     id: "mine",
@@ -76,7 +88,8 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     baseCost: 100,
     costGrowth: 1.2,
     materialCost: { wood: 3 },
-    unlock: { resource: "credits", gte: 50 }
+    unlock: { resource: "credits", gte: 50 },
+    staffNeed: { worker: 2 }
   },
   quarry: {
     id: "quarry",
@@ -85,7 +98,8 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     baseCost: 150,
     costGrowth: 1.22,
     materialCost: { wood: 6, stone: 2 },
-    requiresTech: "industry"
+    requiresTech: "industry",
+    staffNeed: { worker: 2 }
   },
   granary: {
     id: "granary",
@@ -94,7 +108,8 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     baseCost: 80,
     costGrowth: 1.18,
     materialCost: { wood: 5 },
-    requiresTech: "agriculture"
+    requiresTech: "agriculture",
+    staffNeed: { worker: 1 }
   },
   lab: {
     id: "lab",
@@ -103,7 +118,8 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     baseCost: 80,
     costGrowth: 1.25,
     materialCost: { wood: 4 },
-    unlock: { resource: "credits", gte: 60 }
+    unlock: { resource: "credits", gte: 60 },
+    staffNeed: { researcher: 1 }
   },
   market: {
     id: "market",
@@ -112,7 +128,8 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     baseCost: 200,
     costGrowth: 1.25,
     materialCost: { wood: 5, stone: 3 },
-    requiresTech: "commerce"
+    requiresTech: "commerce",
+    staffNeed: { worker: 1 }
   },
   factory: {
     id: "factory",
@@ -121,7 +138,34 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     baseCost: 500,
     costGrowth: 1.3,
     materialCost: { wood: 4, stone: 8, iron: 5 },
-    requiresTech: "heavy_industry"
+    requiresTech: "heavy_industry",
+    staffNeed: { worker: 4 }
+  },
+  school: {
+    id: "school",
+    label: "School",
+    category: "people",
+    baseCost: 60,
+    costGrowth: 1.18,
+    unlock: { resource: "credits", gte: 40 }
+  },
+  academy: {
+    id: "academy",
+    label: "Academy",
+    category: "people",
+    baseCost: 120,
+    costGrowth: 1.22,
+    materialCost: { wood: 4 },
+    unlock: { resource: "credits", gte: 100 }
+  },
+  barracks: {
+    id: "barracks",
+    label: "Barracks",
+    category: "people",
+    baseCost: 100,
+    costGrowth: 1.2,
+    materialCost: { wood: 3 },
+    unlock: { resource: "credits", gte: 80 }
   }
 };
 
@@ -178,6 +222,11 @@ export const HOUSE_CAPACITY = 10;
 export const POP_GROWTH_RATE = 0.5;
 export const POP_DECAY_RATE = 0.2;
 export const POP_FOOD_RATE = 0.05;
+
+/** Trained-citizens-per-second produced by each training building. */
+export const SCHOOL_TRAIN_RATE = 0.2;
+export const ACADEMY_TRAIN_RATE = 0.15;
+export const BARRACKS_TRAIN_RATE = 0.15;
 
 export const ROAD_COST = 2;
 

@@ -92,6 +92,17 @@ export function BuildingInspector({
         {isConnected ? "connected" : "stranded - build a road to main"}
       </div>
 
+      {def.staffNeed && (() => {
+        const need = def.staffNeed;
+        const lines: string[] = [];
+        if (need.worker) lines.push(`${need.worker} worker${need.worker > 1 ? "s" : ""}`);
+        if (need.researcher) lines.push(`${need.researcher} researcher${need.researcher > 1 ? "s" : ""}`);
+        if (need.military) lines.push(`${need.military} military`);
+        return (
+          <div className="ip-note">staffing: {lines.join(" + ")}</div>
+        );
+      })()}
+
       {id === "main" && (
         <div className="ip-note">network anchor. no production.</div>
       )}

@@ -217,6 +217,27 @@ const FACTORY_PALETTE: BuildingPalette = {
   accent: 0xff8830
 };
 
+const SCHOOL_PALETTE: BuildingPalette = {
+  top: 0xe0c878,
+  right: 0xa88828,
+  left: 0x6e5418,
+  accent: 0xfff0a8
+};
+
+const ACADEMY_PALETTE: BuildingPalette = {
+  top: 0x88a0c8,
+  right: 0x3a5878,
+  left: 0x1e3650,
+  accent: 0xc8e0ff
+};
+
+const BARRACKS_PALETTE: BuildingPalette = {
+  top: 0xa84838,
+  right: 0x6a2a18,
+  left: 0x3a1408,
+  accent: 0xe88858
+};
+
 const PALETTES: Record<BuildingId, BuildingPalette> = {
   main: MAIN_PALETTE,
   farm: FARM_PALETTE,
@@ -227,12 +248,15 @@ const PALETTES: Record<BuildingId, BuildingPalette> = {
   quarry: QUARRY_PALETTE,
   granary: GRANARY_PALETTE,
   market: MARKET_PALETTE,
-  factory: FACTORY_PALETTE
+  factory: FACTORY_PALETTE,
+  school: SCHOOL_PALETTE,
+  academy: ACADEMY_PALETTE,
+  barracks: BARRACKS_PALETTE
 };
 
 function buildingHeight(kind: BuildingId): number {
   if (kind === "main") return MAIN_BUILDING_HEIGHT;
-  if (kind === "factory" || kind === "lab") return TALL_BUILDING_HEIGHT;
+  if (kind === "factory" || kind === "lab" || kind === "academy") return TALL_BUILDING_HEIGHT;
   return BUILDING_HEIGHT;
 }
 
@@ -320,6 +344,30 @@ export function drawIsoBuilding(g: Graphics, kind: BuildingId, dim = false): voi
     g.rect(TILE_W / 2 - 1, TILE_H / 2 - H - 6, 1, 5);
     g.fill({ color: p.accent, alpha });
     g.rect(TILE_W / 2, TILE_H / 2 - H - 6, 4, 2);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "school") {
+    // School: bell-tower silhouette + a chimney
+    g.rect(TILE_W / 2 - 2, TILE_H / 2 - H - 6, 4, 6);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 5, TILE_H / 2 - H - 1, 10, 2);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 4, TILE_H / 2 - 2, 8, 2);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "academy") {
+    // Academy: pillars + a dome on top
+    g.rect(TILE_W / 2 - 7, TILE_H / 2 - H + 2, 2, H - 4);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 + 5, TILE_H / 2 - H + 2, 2, H - 4);
+    g.fill({ color: p.accent, alpha });
+    g.circle(TILE_W / 2, TILE_H / 2 - H + 1, 5);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "barracks") {
+    // Barracks: low blocky structure with a flagpole
+    g.rect(TILE_W / 2 - 5, TILE_H / 2 - H - 1, 10, 2);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 1, TILE_H / 2 - H - 8, 1, 7);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2, TILE_H / 2 - H - 8, 4, 3);
     g.fill({ color: p.accent, alpha });
   } else if (kind === "factory") {
     // Factory: two smokestacks puffing out the top of the tall sprite.

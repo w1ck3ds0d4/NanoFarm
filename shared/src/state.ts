@@ -43,7 +43,10 @@ export type BuildingId =
   | "quarry"
   | "granary"
   | "market"
-  | "factory";
+  | "factory"
+  | "school"
+  | "academy"
+  | "barracks";
 
 export const BUILDING_IDS: readonly BuildingId[] = [
   "main",
@@ -56,7 +59,20 @@ export const BUILDING_IDS: readonly BuildingId[] = [
   "granary",
   "market",
   "factory",
+  "school",
+  "academy",
+  "barracks",
 ] as const;
+
+export type JobId = "idle" | "worker" | "researcher" | "military";
+
+export const JOB_IDS: readonly JobId[] = ["idle", "worker", "researcher", "military"] as const;
+
+export type PopulationByJob = Record<JobId, number>;
+
+export function totalPopulation(p: PopulationByJob): number {
+  return p.idle + p.worker + p.researcher + p.military;
+}
 
 export type TechId =
   | "agriculture"
@@ -130,8 +146,9 @@ export interface MetaState {
   lastTickAt: number;
   hookDrainedAt: number;
   totalAiTokensEarned: number;
-  /** Current population. Fractional internally; displayed floored. */
-  population: number;
+  /** Current population split by job. Fractional internally;
+   * displayed floored. Sum is the player-visible population number. */
+  population: PopulationByJob;
 }
 
 export interface MapState {
@@ -165,7 +182,7 @@ export function makeInitialState(now: number, seed?: number): GameState {
       lastTickAt: now,
       hookDrainedAt: 0,
       totalAiTokensEarned: 0,
-      population: 0
+      population: { idle: 0, worker: 0, researcher: 0, military: 0 }
     },
     // Starting credits cover: main (free) + first farm (10) + a few roads
     // (2 each) so the player can route the farm to main if they didn't
@@ -183,7 +200,10 @@ export function makeInitialState(now: number, seed?: number): GameState {
       quarry: { id: "quarry", count: 0 },
       granary: { id: "granary", count: 0 },
       market: { id: "market", count: 0 },
-      factory: { id: "factory", count: 0 }
+      factory: { id: "factory", count: 0 },
+      school: { id: "school", count: 0 },
+      academy: { id: "academy", count: 0 },
+      barracks: { id: "barracks", count: 0 }
     },
     events: {
       firedIds: [],

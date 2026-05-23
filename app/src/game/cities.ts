@@ -1,4 +1,5 @@
 import type { CityId, GameState } from "@nanofarm/shared";
+import { totalPopulation } from "@nanofarm/shared";
 
 export interface CityDef {
   id: CityId;
@@ -24,8 +25,8 @@ export const CITY_DEFS: Record<CityId, CityDef> = {
     description:
       "Lush starter biome. Grass and forests everywhere, plenty of room to learn the basics.",
     milestoneLabel: "house a population of 50",
-    isMilestoneMet: (s) => s.meta.population >= 50,
-    progress: (s) => Math.min(1, s.meta.population / 50),
+    isMilestoneMet: (s) => totalPopulation(s.meta.population) >= 50,
+    progress: (s) => Math.min(1, totalPopulation(s.meta.population) / 50),
     prereqs: []
   },
   pinewood: {

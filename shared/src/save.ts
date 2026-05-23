@@ -80,8 +80,46 @@ export function hydrateMissingFields(state: GameState): GameState {
       next = { ...next, techs: techsPatch };
     }
   }
-  if (typeof next.meta.population !== "number") {
-    next = { ...next, meta: { ...next.meta, population: 0 } };
+  // Population migration: legacy `population: number` -> new
+  // PopulationByJob record. Treat the old count as already-trained
+  // workers so live saves keep their producers running.
+  const meta = next.meta as unknown as { population?: unknown };
+  if (typeof meta.population === "number") {
+    next = {
+      ...next,
+      meta: {
+        ...next.meta,
+        population: {
+          idle: 0,
+          worker: meta.population,
+          researcher: 0,
+          military: 0
+        }
+      }
+    };
+  } else if (meta.population && typeof meta.population === "object") {
+    // Already a record; backfill any missing job buckets.
+    const p = meta.population as Partial<Record<string, number>>;
+    next = {
+      ...next,
+      meta: {
+        ...next.meta,
+        population: {
+          idle: p.idle ?? 0,
+          worker: p.worker ?? 0,
+          researcher: p.researcher ?? 0,
+          military: p.military ?? 0
+        }
+      }
+    };
+  } else {
+    next = {
+      ...next,
+      meta: {
+        ...next.meta,
+        population: { idle: 0, worker: 0, researcher: 0, military: 0 }
+      }
+    };
   }
   // old `materials: number` shape: split equally into wood/iron/stone/water
   const r = next.resources as Record<string, number>;
