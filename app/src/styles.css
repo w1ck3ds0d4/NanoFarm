@@ -101,14 +101,26 @@ button:disabled {
 
 .resource-bar {
   display: flex;
-  gap: 10px;
+  gap: 4px;
   justify-content: center;
+  align-items: center;
 }
 
+/* Every cell - whether `<span>` or `<button>` (the materials one is
+   clickable) - shares the same box: same padding, same border, same
+   typography. Without this the clickable button inherited UA
+   button defaults and shifted the cell a couple of pixels off the
+   spans, making the row look misaligned in the screenshot. */
 .rb-cell {
-  display: flex;
+  display: inline-flex;
   align-items: baseline;
-  gap: 4px;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  line-height: 1;
 }
 
 .rb-key {
@@ -122,12 +134,10 @@ button:disabled {
   color: #ccff44;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+  font-size: 10px;
 }
 
 .rb-clickable {
-  background: transparent;
-  border: 1px solid transparent;
-  padding: 1px 6px;
   cursor: pointer;
 }
 
