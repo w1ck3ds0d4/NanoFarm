@@ -1050,6 +1050,13 @@ button:disabled {
   gap: 6px;
 }
 
+/* yes/no fit their content; the wider .sp-btn min-width was for
+   labels like "recenter on main" and doesn't suit two-letter ones. */
+.sp-confirm-actions .sp-btn {
+  min-width: 0;
+  padding: 4px 16px;
+}
+
 /* ============ WORLD MAP PANEL ============ */
 .world-panel {
   position: absolute;
@@ -1103,20 +1110,25 @@ button:disabled {
   color: #cce0ff;
 }
 
-.wm-hint {
-  color: #6688aa;
-  font-size: 10px;
-  line-height: 1.4;
+.wm-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 260px;
+  background: rgba(8, 16, 28, 0.6);
+  border: 1px solid #2a4060;
   margin-bottom: 10px;
 }
 
-.wm-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 10px;
+.wm-marker {
+  cursor: pointer;
 }
 
-.wm-card {
+.wm-marker:hover circle:first-child {
+  filter: brightness(1.4);
+}
+
+.wm-detail {
   background: rgba(16, 26, 40, 0.85);
   border: 1px solid #2a4060;
   padding: 10px;
@@ -1125,33 +1137,16 @@ button:disabled {
   gap: 6px;
 }
 
-.wm-card.locked {
-  opacity: 0.5;
-}
-
-.wm-card.current {
-  border-color: #ccff44;
-}
-
-.wm-card.settled {
-  border-color: #88aacc;
-  opacity: 0.85;
-}
-
-.wm-card.confirming {
-  border-color: #ff8844;
-}
-
-.wm-card-head {
+.wm-detail-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
 }
 
-.wm-card-title {
+.wm-detail-title {
   color: #cce0ff;
   font-weight: 700;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.5px;
 }
 
