@@ -192,6 +192,7 @@ export function App() {
           cameraY={cameraY}
           zoom={zoom}
           selectMode={stageSelectMode}
+          inspectKey={inspected}
           width={STAGE_W}
           height={STAGE_H}
           onTileClick={onTileClick}

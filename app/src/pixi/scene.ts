@@ -18,6 +18,9 @@ export interface Scene {
   groundPool: Map<string, Graphics>;
   roadsPool: Map<string, Graphics>;
   buildingsPool: Map<string, Graphics>;
+  /** Single overlay graphic that draws an outline on the inspected
+   * tile. Lives above buildings so the outline is never occluded. */
+  selectionOverlay: Graphics;
 }
 
 export interface RenderParams {
@@ -31,6 +34,8 @@ export interface RenderParams {
   hoverY: number | null;
   /** What kind of placeable is currently selected for placement, or null. */
   selectMode: "building" | "road" | null;
+  /** Tile key (e.g. "12,7") for the inspected building, or null. */
+  inspectKey: string | null;
   canvasW: number;
   canvasH: number;
 }
@@ -41,9 +46,12 @@ export function mountScene(app: Application): Scene {
   const roadsLayer = new Container();
   const buildingsLayer = new Container();
   buildingsLayer.sortableChildren = true;
+  const selectionOverlay = new Graphics();
+  selectionOverlay.visible = false;
   root.addChild(ground);
   root.addChild(roadsLayer);
   root.addChild(buildingsLayer);
+  root.addChild(selectionOverlay);
   app.stage.addChild(root);
   return {
     app,
@@ -53,7 +61,8 @@ export function mountScene(app: Application): Scene {
     buildingsLayer,
     groundPool: new Map(),
     roadsPool: new Map(),
-    buildingsPool: new Map()
+    buildingsPool: new Map(),
+    selectionOverlay
   };
 }
 
@@ -236,5 +245,42 @@ export function renderScene(scene: Scene, p: RenderParams): void {
       g.destroy();
       scene.buildingsPool.delete(key);
     }
+  }
+
+  // ============ inspector selection highlight ============
+  // Single diamond outline on the inspected tile so the player can
+  // tell at a glance which building the inspector panel is showing.
+  // The graphic lives at the top of the scene's z-order, so the
+  // outline never hides behind a tall building sprite. Hidden when
+  // nothing is inspected.
+  const sel = scene.selectionOverlay;
+  if (p.inspectKey && p.state.map.placed[p.inspectKey]) {
+    const [ixStr, iyStr] = p.inspectKey.split(",");
+    const ix = Number(ixStr);
+    const iy = Number(iyStr);
+    sel.clear();
+    // Diamond inset by 1px so the outline visually sits on the tile
+    // edge rather than overlapping the next tile.
+    sel.poly([
+      TILE_W / 2, 1,
+      TILE_W - 1, TILE_H / 2,
+      TILE_W / 2, TILE_H - 1,
+      1, TILE_H / 2,
+    ]);
+    sel.stroke({ width: 2, color: 0xccff44, alpha: 1 });
+    const { sx, sy } = tileToScreen(
+      ix,
+      iy,
+      p.cameraX,
+      p.cameraY,
+      p.canvasW,
+      p.canvasH,
+      p.zoom,
+    );
+    sel.position.set(sx, sy);
+    sel.scale.set(p.zoom);
+    sel.visible = true;
+  } else {
+    sel.visible = false;
   }
 }
