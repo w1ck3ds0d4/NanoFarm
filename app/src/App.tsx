@@ -210,6 +210,8 @@ export function App() {
   const showStartHint = totalBuildings === 0 && !selected && !buildOpen;
   const stageSelectMode: "building" | "road" | null =
     selected === null ? null : selected === "road" ? "road" : "building";
+  const placingSize =
+    selected && selected !== "road" ? (BUILDING_DEFS[selected].size ?? 1) : 1;
 
   const roadsCount = Object.keys(state.map.roads).length;
 
@@ -224,6 +226,7 @@ export function App() {
           cameraY={cameraY}
           zoom={zoom}
           selectMode={stageSelectMode}
+          placingSize={placingSize}
           inspectKey={inspected}
           width={STAGE_W}
           height={STAGE_H}

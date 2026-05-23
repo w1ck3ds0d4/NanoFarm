@@ -35,6 +35,10 @@ export interface RenderParams {
   hoverY: number | null;
   /** What kind of placeable is currently selected for placement, or null. */
   selectMode: "building" | "road" | null;
+  /** Footprint side length of the placeable being placed. 1 for road
+   * and 1x1 buildings; > 1 for multi-tile buildings so the hover
+   * highlight expands to the correct NxN footprint. */
+  placingSize: number;
   /** Tile key (e.g. "12,7") for the inspected building, or null. */
   inspectKey: string | null;
   canvasW: number;
@@ -158,6 +162,34 @@ export function renderScene(scene: Scene, p: RenderParams): void {
   const h = p.state.map.height;
   const vis = visibleRange(p.cameraX, p.cameraY, p.canvasW, p.canvasH, p.zoom);
 
+  // Pre-compute whether the entire NxN hover footprint is a legal
+  // placement. Used to color-code the hover overlay: green when the
+  // whole footprint is buildable + free, red when any tile would
+  // block the placement. Roads always hover as 1x1.
+  const size = Math.max(1, p.placingSize);
+  let hoverFootprintValid = false;
+  if (p.selectMode !== null && p.hoverX !== null && p.hoverY !== null) {
+    hoverFootprintValid = true;
+    for (let dy = 0; dy < size; dy++) {
+      for (let dx = 0; dx < size; dx++) {
+        const fx = p.hoverX + dx;
+        const fy = p.hoverY + dy;
+        if (fx < 0 || fx >= w || fy < 0 || fy >= h) {
+          hoverFootprintValid = false;
+          break;
+        }
+        const fkey = `${fx},${fy}`;
+        const ft = terrainAt(p.terrain, w, h, fx, fy);
+        const fOccupied = !!p.state.map.placed[fkey] || !!p.state.map.roads[fkey];
+        if (!isBuildable(ft) || fOccupied) {
+          hoverFootprintValid = false;
+          break;
+        }
+      }
+      if (!hoverFootprintValid) break;
+    }
+  }
+
   const wantedGround = new Set<string>();
   for (let wy = vis.y0; wy <= vis.y1; wy++) {
     for (let wx = vis.x0; wx <= vis.x1; wx++) {
@@ -167,12 +199,19 @@ export function renderScene(scene: Scene, p: RenderParams): void {
       const t = terrainAt(p.terrain, w, h, wx, wy);
       const occupied = !!p.state.map.placed[key] || !!p.state.map.roads[key];
       const selectable = p.selectMode !== null && isBuildable(t) && !occupied;
-      const hovered =
-        p.hoverX === wx &&
-        p.hoverY === wy &&
+      // A tile is part of the hover footprint when it falls inside
+      // the NxN square anchored at the hover origin. For 1x1 this
+      // collapses to a single-tile check, matching the old behavior.
+      const inHoverFootprint =
         p.selectMode !== null &&
-        isBuildable(t) &&
-        !occupied;
+        p.hoverX !== null &&
+        p.hoverY !== null &&
+        wx >= p.hoverX &&
+        wx < p.hoverX + size &&
+        wy >= p.hoverY &&
+        wy < p.hoverY + size;
+      const hovered = inHoverFootprint && hoverFootprintValid;
+      const hoveredInvalid = inHoverFootprint && !hoverFootprintValid;
 
       let g = scene.groundPool.get(key);
       if (!g) {
@@ -180,7 +219,7 @@ export function renderScene(scene: Scene, p: RenderParams): void {
         scene.ground.addChild(g);
         scene.groundPool.set(key, g);
       }
-      drawTerrainTile(g, t, wx, wy, selectable, hovered);
+      drawTerrainTile(g, t, wx, wy, selectable, hovered, hoveredInvalid);
       const { sx, sy } = tileToScreen(wx, wy, p.cameraX, p.cameraY, p.canvasW, p.canvasH, p.zoom);
       g.position.set(sx, sy);
       g.scale.set(p.zoom);
@@ -302,14 +341,18 @@ export function renderScene(scene: Scene, p: RenderParams): void {
     const [ixStr, iyStr] = p.inspectKey.split(",");
     const ix = Number(ixStr);
     const iy = Number(iyStr);
+    const inspectedId = p.state.map.placed[p.inspectKey];
+    const inspectedSize = buildingSize(inspectedId);
     sel.clear();
-    // Diamond inset by 1px so the outline visually sits on the tile
-    // edge rather than overlapping the next tile.
+    // NxN footprint diamond corners (relative to origin tile's
+    // top-left). Same math as the multi-tile body drawing in
+    // tiles.ts, inset by 1px so the outline sits on the tile edge.
+    const N = inspectedSize;
     sel.poly([
-      TILE_W / 2, 1,
-      TILE_W - 1, TILE_H / 2,
-      TILE_W / 2, TILE_H - 1,
-      1, TILE_H / 2,
+      TILE_W / 2,              1,
+      ((N + 1) * TILE_W) / 2 - 1, (N * TILE_H) / 2,
+      TILE_W / 2,              N * TILE_H - 1,
+      -((N - 1) * TILE_W) / 2 + 1, (N * TILE_H) / 2,
     ]);
     sel.stroke({ width: 2, color: 0xccff44, alpha: 1 });
     const { sx, sy } = tileToScreen(

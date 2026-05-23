@@ -33,7 +33,8 @@ export function drawTerrainTile(
   x: number,
   y: number,
   selectable: boolean,
-  hovered: boolean
+  hovered: boolean,
+  hoveredInvalid: boolean = false
 ): void {
   g.clear();
   const variant = (((x * 31 + y * 17) % 3) + 3) % 3;
@@ -110,7 +111,11 @@ export function drawTerrainTile(
     }
   }
 
-  if (hovered) {
+  if (hoveredInvalid) {
+    // Red wash so the player sees the placement is blocked: tile is
+    // out of bounds, occupied, or unbuildable.
+    drawDiamond(g, 0xff4444, 0.4);
+  } else if (hovered) {
     drawDiamond(g, 0xccff44, 0.4);
   } else if (selectable) {
     drawDiamond(g, 0xccff44, 0.12);

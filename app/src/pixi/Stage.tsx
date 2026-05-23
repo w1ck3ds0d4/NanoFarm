@@ -17,6 +17,10 @@ interface Props {
   cameraY: number;
   zoom: number;
   selectMode: "building" | "road" | null;
+  /** Footprint side length of the currently selected placeable. 1 for
+   * road / 1x1 buildings, >1 for multi-tile. Used by the renderer to
+   * size the hover highlight and validity check. */
+  placingSize: number;
   inspectKey: string | null;
   width: number;
   height: number;
@@ -40,6 +44,7 @@ export function Stage({
   cameraY,
   zoom,
   selectMode,
+  placingSize,
   inspectKey,
   width,
   height,
@@ -135,6 +140,7 @@ export function Stage({
       hoverX: hoverRef.current?.x ?? null,
       hoverY: hoverRef.current?.y ?? null,
       selectMode,
+      placingSize,
       inspectKey,
       canvasW: width,
       canvasH: height
@@ -153,7 +159,7 @@ export function Stage({
     // input (place / pan / zoom / hover / selectMode flip) instead of
     // 60 times per second.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.map, terrain, connected, cameraX, cameraY, zoom, selectMode, inspectKey]);
+  }, [state.map, terrain, connected, cameraX, cameraY, zoom, selectMode, placingSize, inspectKey]);
 
   function localPos(e: React.MouseEvent<HTMLDivElement>): { sx: number; sy: number } {
     const rect = e.currentTarget.getBoundingClientRect();
