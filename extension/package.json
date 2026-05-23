@@ -1,11 +1,16 @@
 {
-  "name": "@nanofarm/extension",
+  "name": "nanofarm-extension",
   "displayName": "NanoFarm",
   "description": "Tiny pixel-art idle game that lives in a VS Code tab.",
   "version": "0.1.0",
   "private": true,
   "publisher": "w1ck3ds0d4",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/w1ck3ds0d4/NanoFarm.git",
+    "directory": "extension"
+  },
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -25,11 +30,14 @@
     "compile": "tsc -p .",
     "watch": "tsc -p . -w",
     "typecheck": "tsc -p . --noEmit",
-    "build": "pnpm --filter @nanofarm/app build && pnpm compile"
+    "build": "pnpm --filter @nanofarm/app build && pnpm compile",
+    "bundle-dist": "node ./scripts/bundle-dist.mjs",
+    "package": "pnpm build && pnpm bundle-dist && vsce package --no-dependencies"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.2.1",
     "typescript": "~5.6.3"
   },
   "dependencies": {
