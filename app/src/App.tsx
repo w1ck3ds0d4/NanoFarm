@@ -289,6 +289,10 @@ export function App() {
                 {Math.floor(totalPopulation(state.meta.population))}/{popCap}
               </span>
             </button>
+            <span className="rb-cell">
+              <span className="rb-key">power</span>
+              <span className="rb-val">{Math.floor(state.resources.electricity)}</span>
+            </span>
             <button
               type="button"
               className={"rb-cell rb-clickable" + (researchOpen ? " active" : "")}

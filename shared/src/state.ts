@@ -3,6 +3,7 @@ import { DEFAULT_MAP_SIZE } from "./map";
 export type ResourceId =
   | "credits"
   | "research"
+  | "electricity"
   | "wood"
   | "iron"
   | "stone"
@@ -14,6 +15,7 @@ export type ResourceMap = Record<ResourceId, number>;
 export const RESOURCE_IDS: readonly ResourceId[] = [
   "credits",
   "research",
+  "electricity",
   "wood",
   "iron",
   "stone",
@@ -48,7 +50,8 @@ export type BuildingId =
   | "academy"
   | "barracks"
   | "power_plant"
-  | "wonder";
+  | "wonder"
+  | "water_pump";
 
 export const BUILDING_IDS: readonly BuildingId[] = [
   "main",
@@ -66,6 +69,7 @@ export const BUILDING_IDS: readonly BuildingId[] = [
   "barracks",
   "power_plant",
   "wonder",
+  "water_pump",
 ] as const;
 
 export type JobId = "idle" | "worker" | "researcher" | "military";
@@ -200,7 +204,7 @@ export function makeInitialState(now: number, seed?: number): GameState {
     // land adjacent. With the previous 10 credits, dropping a farm one
     // tile off main left the player with 0 credits and a disconnected
     // producer - soft-locked.
-    resources: { credits: 20, research: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 },
+    resources: { credits: 20, research: 0, electricity: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 },
     buildings: {
       main: { id: "main", count: 0 },
       farm: { id: "farm", count: 0 },
@@ -216,7 +220,8 @@ export function makeInitialState(now: number, seed?: number): GameState {
       academy: { id: "academy", count: 0 },
       barracks: { id: "barracks", count: 0 },
       power_plant: { id: "power_plant", count: 0 },
-      wonder: { id: "wonder", count: 0 }
+      wonder: { id: "wonder", count: 0 },
+      water_pump: { id: "water_pump", count: 0 }
     },
     events: {
       firedIds: [],

@@ -138,6 +138,7 @@ export function hydrateMissingFields(state: GameState): GameState {
       resources: {
         credits: r.credits ?? 0,
         research: r.research ?? 0,
+        electricity: r.electricity ?? 0,
         wood: each,
         iron: each,
         stone: each,
@@ -151,6 +152,7 @@ export function hydrateMissingFields(state: GameState): GameState {
       resources: {
         credits: r.credits ?? 0,
         research: r.research ?? 0,
+        electricity: r.electricity ?? 0,
         wood: 0,
         iron: 0,
         stone: 0,
@@ -165,6 +167,13 @@ export function hydrateMissingFields(state: GameState): GameState {
         ...next.resources,
         potatoes: 0
       }
+    };
+  }
+  // Backfill electricity (added with the power plant pass).
+  if ((next.resources as unknown as Record<string, number>).electricity === undefined) {
+    next = {
+      ...next,
+      resources: { ...next.resources, electricity: 0 }
     };
   }
   // Backfill the world / prestige slice. Pre-world saves drop into

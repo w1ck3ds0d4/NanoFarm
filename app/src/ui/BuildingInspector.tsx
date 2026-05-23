@@ -16,6 +16,7 @@ interface Props {
 const RESOURCE_LABEL: Record<ResourceId, string> = {
   credits: "cr",
   research: "rs",
+  electricity: "pw",
   wood: "wood",
   iron: "iron",
   stone: "stone",

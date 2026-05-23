@@ -183,6 +183,16 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     staffNeed: { worker: 8 },
     size: 2
   },
+  water_pump: {
+    id: "water_pump",
+    label: "Water Pump",
+    category: "harvest",
+    baseCost: 90,
+    costGrowth: 1.2,
+    materialCost: { wood: 2, iron: 1 },
+    unlock: { resource: "credits", gte: 70 },
+    staffNeed: { worker: 1 }
+  },
   wonder: {
     id: "wonder",
     label: "Wonder",
@@ -357,11 +367,16 @@ export function productionFor(
     out.stone = 0.1;
     out.iron = 0.1;
   } else if (id === "power_plant") {
-    // 2x2 industrial complex. Big credits + iron + stone but eats
-    // 8 workers, so it only pays off late game with full schools.
-    out.credits = 12;
-    out.iron = 0.3;
-    out.stone = 0.3;
+    // 2x2 industrial complex. Generates the city's electricity
+    // supply; a token credit trickle so the building still earns
+    // something on its own. 8 workers needed.
+    out.electricity = 5;
+    out.credits = 3;
+  } else if (id === "water_pump") {
+    // Coastal / wetlands water specialist. Base output is already
+    // useful, and adjacent water tiles boost it heavily so siting
+    // matters.
+    out.water = 0.6 + waters * 0.6;
   } else if (id === "wonder") {
     // 3x3 vanity. Token research per second; the real reward is
     // legacy / vanity, not the per-second income.

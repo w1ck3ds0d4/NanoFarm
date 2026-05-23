@@ -44,7 +44,7 @@ export type Action =
   | { type: "reset"; now: number };
 
 function emptyResources(): ResourceMap {
-  return { credits: 0, research: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 };
+  return { credits: 0, research: 0, electricity: 0, wood: 0, iron: 0, stone: 0, water: 0, potatoes: 0 };
 }
 
 export function reducer(state: GameState, action: Action): GameState {
@@ -69,6 +69,7 @@ export function reducer(state: GameState, action: Action): GameState {
         resources: {
           credits: r.credits + action.produced.credits,
           research: r.research + action.produced.research,
+          electricity: r.electricity + action.produced.electricity,
           wood: r.wood + action.produced.wood,
           iron: r.iron + action.produced.iron,
           stone: r.stone + action.produced.stone,

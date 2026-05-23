@@ -22,6 +22,7 @@ interface Props {
 const SHORT: Record<ResourceId, string> = {
   credits: "cr",
   research: "rs",
+  electricity: "pw",
   wood: "wd",
   iron: "ir",
   stone: "st",

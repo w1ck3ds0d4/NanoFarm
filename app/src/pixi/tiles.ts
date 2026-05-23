@@ -257,6 +257,13 @@ const WONDER_PALETTE: BuildingPalette = {
   accent: 0xffee88
 };
 
+const WATER_PUMP_PALETTE: BuildingPalette = {
+  top: 0x6aa8c8,
+  right: 0x285878,
+  left: 0x143048,
+  accent: 0xb8e0ff
+};
+
 const PALETTES: Record<BuildingId, BuildingPalette> = {
   main: MAIN_PALETTE,
   farm: FARM_PALETTE,
@@ -272,7 +279,8 @@ const PALETTES: Record<BuildingId, BuildingPalette> = {
   academy: ACADEMY_PALETTE,
   barracks: BARRACKS_PALETTE,
   power_plant: POWER_PLANT_PALETTE,
-  wonder: WONDER_PALETTE
+  wonder: WONDER_PALETTE,
+  water_pump: WATER_PUMP_PALETTE
 };
 
 function buildingHeight(kind: BuildingId): number {
@@ -472,6 +480,14 @@ export function drawIsoBuilding(g: Graphics, kind: BuildingId, dim = false): voi
     g.rect(TILE_W / 2 - 1, TILE_H / 2 - H - 8, 1, 7);
     g.fill({ color: p.accent, alpha });
     g.rect(TILE_W / 2, TILE_H / 2 - H - 8, 4, 3);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "water_pump") {
+    // Water pump: a curved spout + droplet, plus a horizontal handle.
+    g.circle(TILE_W / 2, TILE_H / 2 - H - 4, 3);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 4, TILE_H / 2 - H, 8, 2);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 1, TILE_H / 2 - 2, 2, 4);
     g.fill({ color: p.accent, alpha });
   } else if (kind === "factory") {
     // Factory: two smokestacks puffing out the top of the tall sprite.
