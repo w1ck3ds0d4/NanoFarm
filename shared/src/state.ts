@@ -186,6 +186,10 @@ export interface MetaState {
    * so the HUD can render the city's utility status without
    * re-running the simulation. */
   services: ServicesSnapshot;
+  /** Smoothed per-second flow rate for each resource (positive when
+   * income > outgo, negative otherwise). Updated each tick via EMA
+   * so the displayed number doesn't jitter at every frame. */
+  flow: Record<ResourceId, number>;
 }
 
 export interface MapState {
@@ -233,7 +237,17 @@ export function makeInitialState(now: number, seed?: number): GameState {
       totalAiTokensEarned: 0,
       population: { idle: 0, worker: 0, researcher: 0, military: 0 },
       happiness: 100,
-      services: { powerSupply: 0, powerDemand: 0, waterSupply: 0, waterDemand: 0 }
+      services: { powerSupply: 0, powerDemand: 0, waterSupply: 0, waterDemand: 0 },
+      flow: {
+        credits: 0,
+        research: 0,
+        wood: 0,
+        iron: 0,
+        stone: 0,
+        food: 0,
+        goods: 0,
+        tools: 0
+      }
     },
     // Bootstrap budget: enough credits + raw materials to build main +
     // farm + house + school in one go, plus reserve for a couple of

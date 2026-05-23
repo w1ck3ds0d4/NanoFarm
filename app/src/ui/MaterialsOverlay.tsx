@@ -49,8 +49,8 @@ export function MaterialsOverlay({ state }: Props) {
         : `M ${cx},${cy} L ${x1},${y1} A ${r},${r} 0 ${large} 1 ${x2},${y2} Z`;
 
     const pct = empty ? 0 : (d.value / realTotal) * 100;
-
-    return { id: d.id, path, color: d.color, value: d.value, pct };
+    const flow = state.meta.flow[d.id] ?? 0;
+    return { id: d.id, path, color: d.color, value: d.value, pct, flow };
   });
 
   return (
@@ -80,6 +80,11 @@ export function MaterialsOverlay({ state }: Props) {
             <span className="mp-name">{w.id}</span>
             <span className="mp-val">{Math.floor(w.value)}</span>
             <span className="mp-pct">{Math.floor(w.pct)}%</span>
+            {Math.abs(w.flow) >= 0.01 && (
+              <span className={"mp-flow " + (w.flow > 0 ? "up" : "down")}>
+                {w.flow > 0 ? "+" : ""}{w.flow.toFixed(1)}/s
+              </span>
+            )}
           </div>
         ))}
       </div>

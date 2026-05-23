@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, type ReactNode } from "react";
 import {
   makeInitialState,
   generateTerrain,
@@ -32,6 +32,21 @@ const STAGE_H = 400;
 const DEFAULT_ZOOM = 1;
 
 type HookStatus = "unavailable" | "disconnected" | "connected";
+
+/** Renders a tiny "+1.5/s" or "-0.3/s" tag for a resource flow.
+ * Hides itself when the rate is essentially zero so the HUD doesn't
+ * flicker for resources that aren't moving. */
+function renderFlow(rate: number): ReactNode {
+  if (Math.abs(rate) < 0.01) return null;
+  const sign = rate > 0 ? "+" : "";
+  const cls = rate > 0 ? "rb-flow up" : "rb-flow down";
+  return (
+    <span className={cls}>
+      {sign}
+      {rate.toFixed(1)}/s
+    </span>
+  );
+}
 
 export function App() {
   const adapterRef = useRef(createStorageAdapter());
@@ -273,6 +288,7 @@ export function App() {
             <span className="rb-cell">
               <span className="rb-key">credits</span>
               <span className="rb-val">{Math.floor(state.resources.credits)}</span>
+              {renderFlow(state.meta.flow.credits)}
             </span>
             <button
               type="button"
@@ -338,6 +354,7 @@ export function App() {
             >
               <span className="rb-key">research</span>
               <span className="rb-val">{Math.floor(state.resources.research)}</span>
+              {renderFlow(state.meta.flow.research)}
             </button>
           </div>
         </div>

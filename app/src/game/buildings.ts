@@ -470,7 +470,12 @@ export const SCHOOL_TRAIN_RATE = 0.2;
 export const ACADEMY_TRAIN_RATE = 0.15;
 export const BARRACKS_TRAIN_RATE = 0.15;
 
-export const ROAD_COST = 2;
+/** Roads are free. Connectivity is mandatory under the new economy
+ * (every building needs road-link to the main hub or it's stranded),
+ * so charging for the network gating felt like double dipping. The
+ * place-road reducer still keeps the adjacency rule (each new road
+ * must touch the network) so the player can't drop tiles anywhere. */
+export const ROAD_COST = 0;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

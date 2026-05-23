@@ -12,7 +12,6 @@ import {
 import { CITY_DEFS } from "./cities";
 import {
   BUILDING_DEFS,
-  ROAD_COST,
   TECH_DEFS,
   buildingSize,
   canAffordMaterials,
@@ -46,9 +45,18 @@ export function reducer(state: GameState, action: Action): GameState {
     case "tick": {
       const r = action.result;
       const nextResources = { ...state.resources };
+      // EMA-smoothed per-second flow. Alpha = 0.15 means a step
+      // change in the underlying rate settles ~95% within ~20 ticks
+      // (about 0.3s at 60fps), fast enough to feel live but slow
+      // enough that the displayed number doesn't twitch every frame.
+      const dtSec = Math.max(0.001, (action.now - state.meta.lastTickAt) / 1000);
+      const alpha = 0.15;
+      const nextFlow = { ...state.meta.flow };
       for (const k of RESOURCE_IDS) {
         const delta = r.resourceDeltas[k] ?? 0;
         nextResources[k] = Math.max(0, nextResources[k] + delta);
+        const ratePerSec = delta / dtSec;
+        nextFlow[k] = nextFlow[k] * (1 - alpha) + ratePerSec * alpha;
       }
       const nextPopulation = applyPopulationDelta(
         state.meta.population,
@@ -67,7 +75,8 @@ export function reducer(state: GameState, action: Action): GameState {
             powerDemand: r.services.powerDemand,
             waterSupply: r.services.waterSupply,
             waterDemand: r.services.waterDemand
-          }
+          },
+          flow: nextFlow
         },
         resources: nextResources
       };
@@ -235,8 +244,9 @@ export function reducer(state: GameState, action: Action): GameState {
       };
     }
     case "place-road": {
-      const cost = ROAD_COST;
-      if (state.resources.credits < cost) return state;
+      // Roads are free under the new economy. We keep the
+      // adjacency rule so the player can't scatter unreachable
+      // tiles - networks must grow contiguously from main.
       const key = `${action.x},${action.y}`;
       if (state.map.placed[key]) return state;
       if (state.map.roads[key]) return state;
@@ -263,7 +273,6 @@ export function reducer(state: GameState, action: Action): GameState {
       if (!connectsToNetwork) return state;
       return {
         ...state,
-        resources: { ...state.resources, credits: state.resources.credits - cost },
         map: {
           ...state.map,
           roads: { ...state.map.roads, [key]: true }

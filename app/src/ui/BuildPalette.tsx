@@ -4,7 +4,6 @@ import {
   BUILDING_CATEGORIES,
   BUILDING_DEFS,
   CATEGORY_LABEL,
-  ROAD_COST,
   canAffordMaterials,
   costFor,
   type BuildingCategory
@@ -75,7 +74,6 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
         {activeTab === "infra" ? (
           <RoadCard
             selected={selected === "road"}
-            credits={state.resources.credits}
             mainPlaced={mainPlaced}
             onSelect={(open) => onSelect(open ? "road" : null)}
           />
@@ -204,21 +202,18 @@ function BuildingCard({
 
 function RoadCard({
   selected,
-  credits,
   mainPlaced,
   onSelect
 }: {
   selected: boolean;
-  credits: number;
   mainPlaced: boolean;
   onSelect: (open: boolean) => void;
 }) {
-  const canAfford = credits >= ROAD_COST;
   return (
     <button
       type="button"
       onClick={() => onSelect(!selected)}
-      disabled={(!canAfford || !mainPlaced) && !selected}
+      disabled={!mainPlaced && !selected}
       className={"bp-card" + (selected ? " selected" : "")}
     >
       <div className="bp-card-head">
@@ -226,9 +221,7 @@ function RoadCard({
         <span className="bp-card-count">∞</span>
       </div>
       <div className="bp-card-cost">
-        <span className={"bp-cost-pill" + (canAfford ? "" : " missing")}>
-          {ROAD_COST} cr
-        </span>
+        <span className="bp-cost-pill">free</span>
       </div>
     </button>
   );

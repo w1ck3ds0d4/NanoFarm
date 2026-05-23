@@ -127,6 +127,23 @@ button:disabled {
   color: #ff6644;
 }
 
+/* Per-second flow indicator tucked next to a resource value. */
+.rb-flow {
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.rb-flow.up {
+  color: #88cc44;
+}
+
+.rb-flow.down {
+  color: #cc6644;
+}
+
 /* ============ NEEDS PANEL ============ */
 .needs-panel {
   position: absolute;
@@ -938,7 +955,7 @@ button:disabled {
 
 .mp-row {
   display: grid;
-  grid-template-columns: 8px 50px 28px 26px;
+  grid-template-columns: 8px 52px 32px 30px 1fr;
   align-items: center;
   gap: 4px;
 }
@@ -966,6 +983,20 @@ button:disabled {
   color: #88aa33;
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+.mp-flow {
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+
+.mp-flow.up {
+  color: #88cc44;
+}
+
+.mp-flow.down {
+  color: #cc6644;
 }
 
 /* ============ EVENT DIALOG ============ */
