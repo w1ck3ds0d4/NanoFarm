@@ -269,10 +269,10 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     id: "school",
     label: "School",
     category: "people",
-    baseCost: 80,
+    baseCost: 60,
     costGrowth: 1.18,
     materialCost: { wood: 2 },
-    unlock: { resource: "credits", gte: 50 },
+    unlock: { resource: "credits", gte: 40 },
     ops: { upkeep: 0.3, powerNeed: 1 }
     // Training is handled in simulateTick (idle -> worker), not via
     // a resource flow. Keeping it out of `produces` keeps the
@@ -425,6 +425,22 @@ export const POP_DEMAND = {
   power: 0.02,
   water: 0.02
 } as const;
+
+/** Free baseline utility supply available without any infrastructure.
+ *
+ * The tile / map already has rivers, springs, and minor power
+ * sources; a small city should be able to run a couple of harvest
+ * buildings and a few houses before having to commit to a Water
+ * Pump or Power Plant. Once the city outgrows these tiny streams
+ * and microgrids, the player has to scale infrastructure.
+ *
+ * Tuning intent (with the current building costs):
+ *   - 4 power covers ~4 light buildings (mill, mine, school, etc.)
+ *     before the first Power Plant is needed.
+ *   - 5 water covers ~3 farms + a few residents before the first
+ *     Water Pump is needed. */
+export const FREE_POWER_BASELINE = 4;
+export const FREE_WATER_BASELINE = 5;
 
 /** Rent paid per resident per second. Scaled by happiness in the
  * simulation. */

@@ -231,15 +231,16 @@ export function makeInitialState(now: number, seed?: number): GameState {
       services: { powerSupply: 0, powerDemand: 0, waterSupply: 0, waterDemand: 0 }
     },
     // Bootstrap budget: enough credits + raw materials to build main +
-    // a starter farm + a house + a few roads without grinding. The
-    // economy then needs to take over.
+    // farm + house + school in one go, plus reserve for a couple of
+    // roads. After that the economy takes over: schools train
+    // workers, mills make wood, rent rolls in.
     resources: {
-      credits: 50,
+      credits: 120,
       research: 0,
-      wood: 8,
+      wood: 15,
       iron: 0,
       stone: 0,
-      food: 10,
+      food: 15,
       goods: 0,
       tools: 0
     },

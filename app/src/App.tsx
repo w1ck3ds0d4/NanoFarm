@@ -22,6 +22,7 @@ import { BuildingInspector } from "./ui/BuildingInspector";
 import { BuildingTooltip } from "./ui/BuildingTooltip";
 import { MaterialsOverlay } from "./ui/MaterialsOverlay";
 import { PopulationOverlay } from "./ui/PopulationOverlay";
+import { NeedsPanel } from "./ui/NeedsPanel";
 import { ResearchPanel } from "./ui/ResearchPanel";
 import { SettingsPanel } from "./ui/SettingsPanel";
 import { WorldMapPanel } from "./ui/WorldMapPanel";
@@ -50,6 +51,7 @@ export function App() {
   const [materialsOpen, setMaterialsOpen] = useState(false);
   const [populationOpen, setPopulationOpen] = useState(false);
   const [researchOpen, setResearchOpen] = useState(false);
+  const [needsOpen, setNeedsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [worldOpen, setWorldOpen] = useState(false);
   // Tile-key of the building the player is currently inspecting, or
@@ -123,6 +125,7 @@ export function App() {
         setMaterialsOpen(false);
         setPopulationOpen(false);
         setResearchOpen(false);
+        setNeedsOpen(false);
         setSettingsOpen(false);
         setWorldOpen(false);
         setInspected(null);
@@ -289,10 +292,15 @@ export function App() {
                 {Math.floor(totalPopulation(state.meta.population))}/{popCap}
               </span>
             </button>
-            <span className="rb-cell">
+            <button
+              type="button"
+              className={"rb-cell rb-clickable" + (needsOpen ? " active" : "")}
+              onClick={() => setNeedsOpen((o) => !o)}
+              title="happiness breakdown"
+            >
               <span className="rb-key">happy</span>
               <span className="rb-val">{state.meta.happiness}</span>
-            </span>
+            </button>
             <span
               className={
                 "rb-cell" +
@@ -337,6 +345,10 @@ export function App() {
         {materialsOpen && <MaterialsOverlay state={state} />}
 
         {populationOpen && <PopulationOverlay state={state} />}
+
+        {needsOpen && (
+          <NeedsPanel state={state} onClose={() => setNeedsOpen(false)} />
+        )}
 
         {researchOpen && (
           <ResearchPanel

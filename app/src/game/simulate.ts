@@ -34,6 +34,8 @@ import {
   ACADEMY_TRAIN_RATE,
   BARRACKS_TRAIN_RATE,
   BUILDING_DEFS,
+  FREE_POWER_BASELINE,
+  FREE_WATER_BASELINE,
   HOUSE_CAPACITY,
   POP_DECAY_RATE,
   POP_DEMAND,
@@ -154,7 +156,10 @@ export function simulateTick(
   // included here, so the pump's water output (next pass) is properly
   // gated by available power.
 
-  let powerSupply = 0;
+  // Every city starts with a small baseline (rivers, microgrids,
+  // springs) so the player can run a few light buildings before
+  // committing to dedicated infrastructure.
+  let powerSupply = FREE_POWER_BASELINE;
   for (const { id } of live) {
     const ops = BUILDING_DEFS[id]?.ops;
     if (!ops?.powerSupply) continue;
@@ -171,7 +176,7 @@ export function simulateTick(
 
   // ─── Pass 3: water supply / demand ──────────────────────────────────────
 
-  let waterSupply = 0;
+  let waterSupply = FREE_WATER_BASELINE;
   for (const { id } of live) {
     const ops = BUILDING_DEFS[id]?.ops;
     if (!ops?.waterSupply) continue;
@@ -246,11 +251,21 @@ export function simulateTick(
       }
     }
     if (def.ops.produces) {
+      // Granary district bonus: each 4-cardinal neighbour granary
+      // adds +50% to a farm's food output, capped at +200%. Re-wired
+      // here in the new sim engine; the old productionFor() flow is
+      // dead.
+      const granaryBonus =
+        lb.id === "farm" ? farmGranaryBonus(state, lb.key) : 1;
       for (const [res, amt] of Object.entries(def.ops.produces)) {
-        add(deltas, res as ResourceId, (amt ?? 0) * runRatio * legacyMult * dtSec);
+        const mult = res === "food" ? granaryBonus : 1;
+        add(
+          deltas,
+          res as ResourceId,
+          (amt ?? 0) * runRatio * legacyMult * mult * dtSec,
+        );
       }
     }
-    // Upkeep: applied whenever connected, regardless of run ratio.
     if (def.ops.upkeep) {
       add(deltas, "credits", -def.ops.upkeep * dtSec);
     }
@@ -283,12 +298,28 @@ export function simulateTick(
     goods: inputRatio.goods ?? 1,
     jobs: jobsRatio
   };
-  // Average of the five needs. Empty city (no residents) -> 100.
-  const happinessRaw =
-    residents === 0
-      ? 1
-      : (needs.food + needs.water + needs.power + needs.goods + needs.jobs) / 5;
-  const happiness = Math.round(Math.max(0, Math.min(1, happinessRaw)) * 100);
+  // Survival vs comfort split:
+  //   - Survival (food, water) is the base. Both met -> 80 happiness.
+  //     If either is short, happiness drops fast (linear in shortage).
+  //   - Comfort (power, goods, jobs) is a bonus. Each one met adds
+  //     ~7 happiness, so a fully-served city tops out at ~100.
+  // This means bootstrap cities (food + water from baseline supply,
+  // no power plant, no factory, no jobs) sit at ~80 happiness - in
+  // the growth band - instead of stalling at 30.
+  let happiness: number;
+  if (residents === 0) {
+    happiness = 100;
+  } else {
+    const survival = (needs.food + needs.water) / 2; // 0..1
+    const comfortBonus =
+      ((needs.power >= 0.5 ? 1 : needs.power * 2) +
+        (needs.goods >= 0.5 ? 1 : needs.goods * 2) +
+        (needs.jobs >= 0.5 ? 1 : needs.jobs * 2)) /
+      3;
+    happiness = Math.round(
+      Math.max(0, Math.min(100, survival * 80 + comfortBonus * 20)),
+    );
+  }
 
   // Rent: every resident pays per second, scaled by happiness.
   const rent = residents * RENT_PER_RESIDENT * (happiness / 100) * dtSec;
@@ -349,6 +380,25 @@ export function simulateTick(
 function ratioOf(supply: number, demand: number): number {
   if (demand <= 0) return 1;
   return Math.min(1, supply / demand);
+}
+
+/** +50% food per adjacent granary, capped at +200%. Single-tile
+ * neighbours only - multi-tile granary footprints would need a
+ * different lookup. (No multi-tile granary exists today.) */
+function farmGranaryBonus(state: GameState, key: string): number {
+  const [xs, ys] = key.split(",");
+  const x = Number(xs);
+  const y = Number(ys);
+  let granaries = 0;
+  for (const [dx, dy] of [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ]) {
+    if (state.map.placed[`${x + dx},${y + dy}`] === "granary") granaries++;
+  }
+  return 1 + Math.min(2, granaries * 0.5);
 }
 
 function countHouses(state: GameState, connected: Set<string>): number {

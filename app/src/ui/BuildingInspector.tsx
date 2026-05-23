@@ -1,6 +1,7 @@
+import type { ReactElement } from "react";
 import type { BuildingId, GameState, ResourceId, TerrainType } from "@nanofarm/shared";
 import { neighborTerrains } from "@nanofarm/shared";
-import { BUILDING_DEFS, HOUSE_CAPACITY, costFor, productionFor } from "../game/buildings";
+import { BUILDING_DEFS, HOUSE_CAPACITY, costFor, type BuildingDef } from "../game/buildings";
 
 interface Props {
   state: GameState;
@@ -50,26 +51,92 @@ export function BuildingInspector({
   const def = BUILDING_DEFS[id];
   const isConnected = connected.has(inspectKey);
   const neighbors = neighborTerrains(terrain, state.map.width, state.map.height, x, y);
-  // 4-cardinal building neighbors drive granary/market adjacency
-  // bonuses, mirroring computeProduction in game/state.ts.
-  const bn = { granary: 0, market: 0 };
-  for (const [nx, ny] of [
-    [x - 1, y],
-    [x + 1, y],
-    [x, y - 1],
-    [x, y + 1],
-  ]) {
-    const nid = state.map.placed[`${nx},${ny}`];
-    if (nid === "granary") bn.granary++;
-    else if (nid === "market") bn.market++;
-  }
-  const rates = productionFor(id, neighbors, bn);
+  const ops = def.ops;
 
   // Count each terrain type in the 8 neighbors so the player can see
   // "this farm hits 3 forests + 1 water" without doing the eyeballing.
   const counts: Partial<Record<TerrainType, number>> = {};
   for (const t of neighbors) {
     counts[t] = (counts[t] ?? 0) + 1;
+  }
+
+  // Estimate the building's current run ratio from citywide service
+  // and staffing snapshots. This is approximate (we don't re-run
+  // simulateTick here, we just read what was persisted on meta /
+  // population) but accurate enough to tell the player whether the
+  // building is at 100% or starved.
+  const pop = state.meta.population;
+  const services = state.meta.services;
+
+  function ratioOrOne(supply: number, demand: number): number {
+    if (demand <= 0) return 1;
+    return Math.min(1, supply / demand);
+  }
+
+  // Citywide staffing demand totals (for the worker / researcher
+  // ratios). This is the same math simulate.ts does, just inlined.
+  let workerDemand = 0,
+    researcherDemand = 0,
+    militaryDemand = 0;
+  const origins = state.map.multiTileOrigin ?? {};
+  for (const [key, otherId] of Object.entries(state.map.placed) as [
+    string,
+    BuildingId,
+  ][]) {
+    if (origins[key]) continue;
+    if (otherId !== "main" && !connected.has(key)) continue;
+    const need = BUILDING_DEFS[otherId]?.staffNeed;
+    if (!need) continue;
+    workerDemand += need.worker ?? 0;
+    researcherDemand += need.researcher ?? 0;
+    militaryDemand += need.military ?? 0;
+  }
+  const workerRatio = ratioOrOne(pop.worker, workerDemand);
+  const researcherRatio = ratioOrOne(pop.researcher, researcherDemand);
+  const militaryRatio = ratioOrOne(pop.military, militaryDemand);
+  const powerRatio = ratioOrOne(services.powerSupply, services.powerDemand);
+  const waterRatio = ratioOrOne(services.waterSupply, services.waterDemand);
+
+  let staffR = 1;
+  if (def.staffNeed?.worker) staffR = Math.min(staffR, workerRatio);
+  if (def.staffNeed?.researcher) staffR = Math.min(staffR, researcherRatio);
+  if (def.staffNeed?.military) staffR = Math.min(staffR, militaryRatio);
+
+  let runRatio = isConnected ? staffR : 0;
+  if (isConnected) {
+    if (ops?.powerNeed) runRatio = Math.min(runRatio, powerRatio);
+    if (ops?.waterNeed) runRatio = Math.min(runRatio, waterRatio);
+    // Input ratio approximation: if any required input is at zero in
+    // the stockpile, the building runs at zero on inputs. (We can't
+    // compute exact per-input ratios without re-running simulate.)
+    if (ops?.consumes) {
+      for (const [res] of Object.entries(ops.consumes)) {
+        if ((state.resources[res as ResourceId] ?? 0) <= 0) {
+          runRatio = 0;
+          break;
+        }
+      }
+    }
+  }
+  const runPct = Math.round(runRatio * 100);
+
+  // Render-time helper for a single flow line ("+0.50 wood/s" or
+  // "-0.30 iron/s") in the panel body.
+  function flowLine(
+    sign: "+" | "-",
+    res: ResourceId,
+    rate: number,
+    key: string,
+  ): ReactElement {
+    return (
+      <div key={key} className="ip-rate">
+        <span className={`ip-rate-val ${sign === "+" ? "" : "neg"}`}>
+          {sign}
+          {rate.toFixed(2)}
+        </span>
+        <span className="ip-rate-key">{RESOURCE_LABEL[res]}/s</span>
+      </div>
+    );
   }
 
   return (
@@ -93,6 +160,13 @@ export function BuildingInspector({
         {isConnected ? "connected" : "stranded - build a road to main"}
       </div>
 
+      {id !== "main" && id !== "house" && isConnected && (
+        <div className={`ip-runline ${runPct === 100 ? "ok" : runPct > 0 ? "warn" : "bad"}`}>
+          running at {runPct}%
+          {runPct < 100 && bottleneckLabel(def, pop, services, state.resources)}
+        </div>
+      )}
+
       {def.staffNeed && (() => {
         const need = def.staffNeed;
         const lines: string[] = [];
@@ -103,6 +177,16 @@ export function BuildingInspector({
           <div className="ip-note">staffing: {lines.join(" + ")}</div>
         );
       })()}
+
+      {(ops?.powerNeed || ops?.waterNeed || ops?.powerSupply || ops?.waterSupply) && (
+        <div className="ip-note">
+          {ops.powerNeed ? `needs ${ops.powerNeed} pw` : ""}
+          {ops.powerNeed && ops.waterNeed ? " + " : ""}
+          {ops.waterNeed ? `${ops.waterNeed} wt` : ""}
+          {ops.powerSupply ? `supplies ${ops.powerSupply} pw` : ""}
+          {ops.waterSupply ? (ops.powerSupply ? " + " : "") + `supplies ${ops.waterSupply} wt` : ""}
+        </div>
+      )}
 
       {id === "main" && (
         <div className="ip-note">network anchor. no production.</div>
@@ -120,21 +204,26 @@ export function BuildingInspector({
         </div>
       )}
 
-      {id !== "main" && id !== "house" && (
+      {/* In/out flow lines come from the building's ops, scaled
+          (visually) by run ratio so the player sees actual rates. */}
+      {id !== "main" && id !== "house" && ops && (
         <>
           <div className="ip-rates">
-            {(Object.entries(rates) as [ResourceId, number][]).map(([resource, rate]) =>
-              rate > 0 ? (
-                <div key={resource} className="ip-rate">
-                  <span className="ip-rate-val">+{rate.toFixed(2)}</span>
-                  <span className="ip-rate-key">{RESOURCE_LABEL[resource]}/s</span>
-                </div>
-              ) : null,
-            )}
+            {ops.produces &&
+              Object.entries(ops.produces).map(([res, rate]) =>
+                flowLine("+", res as ResourceId, (rate ?? 0) * runRatio, `p-${res}`),
+              )}
+            {ops.consumes &&
+              Object.entries(ops.consumes).map(([res, rate]) =>
+                flowLine("-", res as ResourceId, (rate ?? 0) * runRatio, `c-${res}`),
+              )}
+            {ops.upkeep ? (
+              <div className="ip-rate">
+                <span className="ip-rate-val neg">-{ops.upkeep.toFixed(2)}</span>
+                <span className="ip-rate-key">cr/s upkeep</span>
+              </div>
+            ) : null}
           </div>
-          {!isConnected && (
-            <div className="ip-warn">disconnected: actual production is 0/s.</div>
-          )}
           {Object.keys(counts).length > 0 && (
             <div className="ip-neighbors">
               neighbors:{" "}
@@ -146,9 +235,6 @@ export function BuildingInspector({
         </>
       )}
 
-      {/* Main is the network anchor and is hidden from removal; for
-          everything else the button refunds 50% of the most-recent
-          placement cost (which equals what the just-built one paid). */}
       {id !== "main" && (() => {
         const count = state.buildings[id].count;
         const lastCost = costFor(def, count - 1);
@@ -172,4 +258,39 @@ export function BuildingInspector({
       })()}
     </div>
   );
+}
+
+// Helper: figure out WHICH input is throttling the building, so the
+// inspector can hint at the bottleneck without making the player
+// guess. Returns "" if at 100%. Prefers the worst limiter.
+function bottleneckLabel(
+  def: BuildingDef | undefined,
+  pop: GameState["meta"]["population"],
+  services: GameState["meta"]["services"],
+  resources: GameState["resources"],
+): string {
+  if (!def) return "";
+  const reasons: Array<{ label: string; ratio: number }> = [];
+  if (def.staffNeed?.worker) {
+    reasons.push({ label: "workers", ratio: pop.worker > 0 ? 1 : 0 });
+  }
+  if (def.staffNeed?.researcher) {
+    reasons.push({ label: "researchers", ratio: pop.researcher > 0 ? 1 : 0 });
+  }
+  if (def.ops?.powerNeed && services.powerDemand > services.powerSupply) {
+    reasons.push({ label: "power", ratio: services.powerSupply / Math.max(1, services.powerDemand) });
+  }
+  if (def.ops?.waterNeed && services.waterDemand > services.waterSupply) {
+    reasons.push({ label: "water", ratio: services.waterSupply / Math.max(1, services.waterDemand) });
+  }
+  if (def.ops?.consumes) {
+    for (const [res] of Object.entries(def.ops.consumes)) {
+      if ((resources[res as ResourceId] ?? 0) <= 0) {
+        reasons.push({ label: `${res} stockpile`, ratio: 0 });
+      }
+    }
+  }
+  if (reasons.length === 0) return "";
+  reasons.sort((a, b) => a.ratio - b.ratio);
+  return ` - short on ${reasons[0].label}`;
 }

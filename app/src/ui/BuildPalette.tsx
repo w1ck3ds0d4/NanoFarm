@@ -129,6 +129,26 @@ function BuildingCard({
     ? (Object.entries(def.materialCost) as Array<[string, number]>)
     : [];
 
+  // Short summary of what the building does on a single line:
+  // "+0.6 food, -1 wt" or "+0.3 tools, -0.3 stone -0.3 iron".
+  // Skip houses and main (they have non-flow ops).
+  const ops = def.ops;
+  const opsBits: string[] = [];
+  if (ops.produces) {
+    for (const [res, amt] of Object.entries(ops.produces)) {
+      if (amt) opsBits.push(`+${amt.toFixed(2)} ${res.slice(0, 4)}`);
+    }
+  }
+  if (ops.consumes) {
+    for (const [res, amt] of Object.entries(ops.consumes)) {
+      if (amt) opsBits.push(`-${amt.toFixed(2)} ${res.slice(0, 4)}`);
+    }
+  }
+  if (ops.powerSupply) opsBits.push(`+${ops.powerSupply} pw`);
+  if (ops.waterSupply) opsBits.push(`+${ops.waterSupply} wt`);
+  if (ops.powerNeed) opsBits.push(`-${ops.powerNeed} pw`);
+  if (ops.waterNeed) opsBits.push(`-${ops.waterNeed} wt`);
+
   return (
     <button
       type="button"
@@ -166,6 +186,14 @@ function BuildingCard({
           </>
         )}
       </div>
+      {(opsBits.length > 0 || ops.upkeep) && (
+        <div className="bp-card-ops">
+          {opsBits.join("  ")}
+          {ops.upkeep ? (
+            <span className="bp-card-upkeep"> &middot; upkeep {ops.upkeep.toFixed(2)} cr/s</span>
+          ) : null}
+        </div>
+      )}
     </button>
   );
 }
