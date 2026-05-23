@@ -80,9 +80,7 @@ button:disabled {
   top: 0;
   left: 0;
   right: 0;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
+  display: flex;
   align-items: center;
   padding: 6px 8px;
   background: rgba(10, 14, 5, 0.9);
@@ -95,7 +93,7 @@ button:disabled {
 .resource-bar {
   display: flex;
   gap: 4px;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
 }
 
@@ -141,38 +139,6 @@ button:disabled {
 .rb-clickable.active {
   background: #1a2010;
   border-color: #ccff44;
-}
-
-.hook-status {
-  font-size: 10px;
-  color: #88aa33;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  display: flex;
-  align-items: center;
-}
-
-.hook-btn {
-  font-size: 10px;
-  padding: 3px 10px;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  border: 1px solid #2a3015;
-  background: #1a2010;
-  color: #88aa33;
-}
-
-.hook-btn:hover {
-  background: #2a3015;
-  color: #ccff44;
-}
-
-.hook-ok {
-  color: #ccff44;
-}
-
-.hook-off {
-  color: #555;
 }
 
 /* ============ BOTTOM HUD ============ */
@@ -950,6 +916,20 @@ button:disabled {
 
 .sp-btn.danger:hover {
   background: #2a1010;
+}
+
+.sp-btn.sp-status {
+  cursor: default;
+}
+
+.sp-btn.sp-status.ok {
+  border-color: #ccff44;
+  color: #ccff44;
+}
+
+.sp-btn.sp-status.off {
+  border-color: #444;
+  color: #666;
 }
 
 .sp-hint {

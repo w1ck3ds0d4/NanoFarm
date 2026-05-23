@@ -273,15 +273,6 @@ export function App() {
               <span className="rb-val">{Math.floor(state.resources.research)}</span>
             </button>
           </div>
-          <div className="hook-status">
-            {hookStatus === "connected" && <span className="hook-ok">hook on</span>}
-            {hookStatus === "disconnected" && (
-              <button onClick={onConnectHook} className="hook-btn">
-                hook
-              </button>
-            )}
-            {hookStatus === "unavailable" && <span className="hook-off">hook off</span>}
-          </div>
         </div>
 
         {materialsOpen && <MaterialsOverlay state={state} />}
@@ -296,6 +287,8 @@ export function App() {
 
         {settingsOpen && (
           <SettingsPanel
+            hookStatus={hookStatus}
+            onConnectHook={onConnectHook}
             onClose={() => setSettingsOpen(false)}
             onResetZoom={() => setZoom(DEFAULT_ZOOM)}
             onRecenter={() => {
@@ -354,10 +347,6 @@ export function App() {
 
         <div className="bottom-hud">
           <div className="bh-left">
-            <div className="cam-meta">
-              cam {Math.round(cameraX)},{Math.round(cameraY)} <span className="dim">|</span>{" "}
-              zoom {zoom.toFixed(1)}x
-            </div>
             <button
               type="button"
               className="hud-btn"
@@ -378,6 +367,10 @@ export function App() {
             >
               map
             </button>
+            <div className="cam-meta">
+              cam {Math.round(cameraX)},{Math.round(cameraY)} <span className="dim">|</span>{" "}
+              zoom {zoom.toFixed(1)}x
+            </div>
           </div>
           <div className="bh-right">
             {selected !== null && !buildOpen && (

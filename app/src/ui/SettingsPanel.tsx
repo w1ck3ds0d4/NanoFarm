@@ -1,4 +1,8 @@
+type HookStatus = "unavailable" | "disconnected" | "connected";
+
 interface Props {
+  hookStatus: HookStatus;
+  onConnectHook: () => void;
   onClose: () => void;
   onResetZoom: () => void;
   onRecenter: () => void;
@@ -6,6 +10,8 @@ interface Props {
 }
 
 export function SettingsPanel({
+  hookStatus,
+  onConnectHook,
   onClose,
   onResetZoom,
   onRecenter,
@@ -31,6 +37,28 @@ export function SettingsPanel({
             reset zoom
           </button>
           <span className="sp-hint">restore 1.0x</span>
+        </div>
+        <div className="sp-row">
+          {hookStatus === "connected" && (
+            <>
+              <span className="sp-btn sp-status ok">hook on</span>
+              <span className="sp-hint">claude code hook is feeding tokens</span>
+            </>
+          )}
+          {hookStatus === "disconnected" && (
+            <>
+              <button className="sp-btn" onClick={onConnectHook}>
+                connect hook
+              </button>
+              <span className="sp-hint">link claude code for ai materials</span>
+            </>
+          )}
+          {hookStatus === "unavailable" && (
+            <>
+              <span className="sp-btn sp-status off">hook off</span>
+              <span className="sp-hint">not running under claude code</span>
+            </>
+          )}
         </div>
         <div className="sp-row danger">
           <button className="sp-btn danger" onClick={onNewRun}>
