@@ -9,36 +9,35 @@ interface Props {
   onClose: () => void;
 }
 
-interface RegionShape {
-  /** Polygon points (SVG points attribute) defining the territory's
-   * outline in 0 0 600 300 viewBox coords. */
-  points: string;
-  /** Where the label and any marker should sit, roughly the territory's
-   * visual centroid. */
-  label: { x: number; y: number };
-  /** Base territory fill (before status tint). */
-  fill: string;
-  /** Per-territory decorative shapes drawn on top of the base fill so
-   * each region reads as a distinct biome at a glance. */
+// Single-country layout. All cities live inside one chunky landmass
+// outline; biome blobs hint at the local terrain around each city,
+// and a single road snakes through them in prereq order.
+//
+// Coords assume an SVG viewBox of 0 0 600 320.
+
+const COUNTRY_OUTLINE =
+  "55,150 70,110 100,80 145,65 200,55 260,55 320,50 380,55 440,65 490,85 530,115 555,160 555,210 530,250 480,275 420,285 350,288 280,285 215,280 160,270 110,250 75,215 55,180";
+
+interface CityPin {
+  x: number;
+  y: number;
+  /** A few decorative shapes drawn inside the city's biome blob to
+   * telegraph what kind of place it is. */
   decor: React.ReactNode;
+  /** Base biome tint (a soft elliptical wash beneath the marker) */
+  biome: string;
 }
 
-// Hand-tuned polygon outlines for each city's territory. The shapes
-// are stylized continents, not geographic - each one telegraphs its
-// biome via shape, fill, and on-territory decoration.
-const REGIONS: Record<CityId, RegionShape> = {
+const CITY_PINS: Record<CityId, CityPin> = {
   verdant_valley: {
-    points:
-      "30,210 60,170 110,150 160,148 200,160 220,195 215,235 180,265 120,272 70,265 28,240",
-    label: { x: 122, y: 215 },
-    fill: "#2a5a1a",
+    x: 145,
+    y: 215,
+    biome: "#2e5a1a",
     decor: (
-      <g key="vv-decor" opacity={0.75}>
-        {/* tree dots scattered across the forest */}
+      <g key="vv-decor" opacity={0.8}>
         {[
-          [55, 200], [80, 185], [105, 175], [135, 170], [165, 180],
-          [195, 195], [70, 230], [100, 240], [140, 245], [180, 235],
-          [85, 255], [125, 260]
+          [95, 200], [115, 235], [165, 240], [180, 200],
+          [200, 230], [125, 180], [80, 220]
         ].map(([cx, cy], i) => (
           <circle key={i} cx={cx} cy={cy} r={3} fill="#4a8a2a" />
         ))}
@@ -46,20 +45,16 @@ const REGIONS: Record<CityId, RegionShape> = {
     )
   },
   stonehaven: {
-    points:
-      "240,120 290,95 345,100 385,125 395,165 375,200 335,215 285,210 245,190 230,150",
-    label: { x: 312, y: 165 },
-    fill: "#5a4a2a",
+    x: 290,
+    y: 165,
+    biome: "#6a5a3a",
     decor: (
       <g key="sh-decor" opacity={0.85}>
-        {/* mountain triangles */}
-        {[
-          [275, 165], [310, 155], [345, 170], [300, 185]
-        ].map(([cx, cy], i) => (
+        {[[260, 145], [290, 130], [320, 145]].map(([cx, cy], i) => (
           <polygon
             key={i}
             points={`${cx},${cy - 14} ${cx - 10},${cy + 4} ${cx + 10},${cy + 4}`}
-            fill="#7a6a4a"
+            fill="#8a7a5a"
             stroke="#3a2a10"
             strokeWidth={1}
           />
@@ -68,36 +63,29 @@ const REGIONS: Record<CityId, RegionShape> = {
     )
   },
   iron_reach: {
-    points:
-      "405,160 450,135 510,140 560,160 575,200 555,235 505,250 450,245 410,225 395,195",
-    label: { x: 488, y: 200 },
-    fill: "#444a52",
+    x: 420,
+    y: 145,
+    biome: "#4a5260",
     decor: (
       <g key="ir-decor" opacity={0.9}>
-        {/* smokestacks */}
-        {[[460, 200], [490, 195], [520, 205]].map(([cx, cy], i) => (
+        {[[390, 130], [440, 125]].map(([cx, cy], i) => (
           <g key={i}>
-            <rect x={cx - 3} y={cy - 18} width={6} height={18} fill="#1a1e22" />
-            <circle cx={cx} cy={cy - 24} r={5} fill="#ff8830" opacity={0.7} />
+            <rect x={cx - 3} y={cy - 14} width={6} height={14} fill="#1a1e22" />
+            <circle cx={cx} cy={cy - 18} r={4} fill="#ff8830" opacity={0.7} />
           </g>
         ))}
-        {/* factory base */}
-        <rect x={445} y={210} width={90} height={18} fill="#2a3038" />
       </g>
     )
   },
   aether_spire: {
-    points:
-      "460,30 510,18 560,28 580,55 565,80 525,90 485,82 450,60",
-    label: { x: 515, y: 60 },
-    fill: "#3a2a5a",
+    x: 500,
+    y: 105,
+    biome: "#3a2a5a",
     decor: (
       <g key="as-decor" opacity={0.85}>
-        {/* single tall spire */}
-        <polygon points="515,32 510,75 520,75" fill="#aa88ff" />
-        <circle cx={515} cy={28} r={4} fill="#ddccff" />
-        {/* stars / sparkles */}
-        {[[475, 45], [555, 50], [490, 70], [550, 75]].map(([cx, cy], i) => (
+        <polygon points="500,80 495,108 505,108" fill="#aa88ff" />
+        <circle cx={500} cy={76} r={3} fill="#ddccff" />
+        {[[475, 95], [525, 95], [490, 75], [520, 115]].map(([cx, cy], i) => (
           <circle key={i} cx={cx} cy={cy} r={1.5} fill="#ffffff" />
         ))}
       </g>
@@ -140,21 +128,21 @@ export function WorldMapPanel({ state, onTravel, onClose }: Props) {
 
       <svg
         className="wm-svg"
-        viewBox="0 0 600 300"
+        viewBox="0 0 600 320"
         preserveAspectRatio="xMidYMid meet"
       >
-        {/* Ocean background */}
-        <rect width={600} height={300} fill="#0a1828" />
-        {/* Wave pattern hint - sparse horizontal ticks across the ocean */}
-        {Array.from({ length: 30 }).map((_, i) => {
-          const x = (i % 10) * 65 + 8;
-          const y = Math.floor(i / 10) * 95 + 50;
+        {/* Ocean */}
+        <rect width={600} height={320} fill="#0a1828" />
+        {/* sparse wave ticks across the ocean */}
+        {Array.from({ length: 28 }).map((_, i) => {
+          const x = (i % 14) * 44 + 10;
+          const y = Math.floor(i / 14) * 280 + 25;
           return (
             <line
               key={i}
               x1={x}
               y1={y}
-              x2={x + 6}
+              x2={x + 5}
               y2={y}
               stroke="#1a3858"
               strokeWidth={1}
@@ -162,19 +150,82 @@ export function WorldMapPanel({ state, onTravel, onClose }: Props) {
           );
         })}
 
-        {/* Territories: shadow polygon first (offset down-right), then
-            the base polygon, then per-territory decor, then label.
-            Order matters so decor sits on top of the fill. */}
+        {/* Country shadow (offset down + right for depth) */}
+        <polygon
+          points={COUNTRY_OUTLINE}
+          fill="#000000"
+          opacity={0.35}
+          transform="translate(4, 4)"
+        />
+        {/* Country landmass */}
+        <polygon
+          points={COUNTRY_OUTLINE}
+          fill="#3a4628"
+          stroke="#6a7a44"
+          strokeWidth={2}
+        />
+
+        {/* Subtle biome wash around each city. Drawn before decor so
+            decor shapes sit on top of the tint. */}
         {CITY_IDS.map((id) => {
-          const r = REGIONS[id];
+          const pin = CITY_PINS[id];
           const status = statusFor(id, world);
+          if (status === "locked") return null;
+          return (
+            <ellipse
+              key={`biome-${id}`}
+              cx={pin.x}
+              cy={pin.y}
+              rx={62}
+              ry={42}
+              fill={pin.biome}
+              opacity={0.55}
+            />
+          );
+        })}
+
+        {/* Per-city biome decor */}
+        {CITY_IDS.map((id) => {
+          const status = statusFor(id, world);
+          if (status === "locked") return null;
+          return CITY_PINS[id].decor;
+        })}
+
+        {/* Roads connecting cities in prereq order. Solid when both
+            endpoints are at least reachable, dashed otherwise. */}
+        {CITY_IDS.slice(1).map((id, i) => {
+          const prev = CITY_IDS[i];
+          const a = CITY_PINS[prev];
+          const b = CITY_PINS[id];
+          const fromOk =
+            world.completedCities.includes(prev) || world.currentCity === prev;
+          const toOk =
+            statusFor(id, world) !== "locked";
+          const both = fromOk && toOk;
+          // Quadratic curve for a slightly winding road
+          const mx = (a.x + b.x) / 2;
+          const my = (a.y + b.y) / 2 - 14;
+          return (
+            <path
+              key={`road-${id}`}
+              d={`M ${a.x} ${a.y} Q ${mx} ${my} ${b.x} ${b.y}`}
+              fill="none"
+              stroke={both ? "#aa9866" : "#3a3a3a"}
+              strokeWidth={2}
+              strokeDasharray={both ? "" : "5 4"}
+            />
+          );
+        })}
+
+        {/* City pins. Each is a small fort-style marker: rect base +
+            triangular roof + flag color matching status. */}
+        {CITY_IDS.map((id) => {
+          const pin = CITY_PINS[id];
+          const status = statusFor(id, world);
+          const flag = flagColorFor(status);
           const isSelected = selectedCity === id;
           const isLocked = status === "locked";
-          const stroke = strokeFor(status);
-          // Locked territories are darker + grayed-out until prereqs
-          // are settled. Selected territory gets a thicker stroke and
-          // a glow filter to pop forward.
-          const tint = isLocked ? "#1a1a1a" : r.fill;
+
           return (
             <g
               key={id}
@@ -184,19 +235,85 @@ export function WorldMapPanel({ state, onTravel, onClose }: Props) {
                 setConfirming(null);
               }}
             >
-              <polygon
-                points={r.points}
-                fill={tint}
-                stroke={stroke}
-                strokeWidth={isSelected ? 3 : 2}
-                opacity={isLocked ? 0.55 : 1}
+              {/* Hit target: invisible rect bigger than the pin so the
+                  click area is generous. */}
+              <rect
+                x={pin.x - 30}
+                y={pin.y - 30}
+                width={60}
+                height={60}
+                fill="transparent"
               />
-              {!isLocked && r.decor}
+              {/* Selection ring */}
+              {isSelected && (
+                <circle
+                  cx={pin.x}
+                  cy={pin.y}
+                  r={22}
+                  fill="none"
+                  stroke={flag}
+                  strokeWidth={2}
+                  strokeDasharray="3 3"
+                  opacity={0.9}
+                />
+              )}
+              {/* Fort base */}
+              <rect
+                x={pin.x - 9}
+                y={pin.y - 4}
+                width={18}
+                height={12}
+                fill={isLocked ? "#2a2a2a" : "#d8c890"}
+                stroke="#3a2a10"
+                strokeWidth={1}
+              />
+              {/* Crenellations */}
+              <rect
+                x={pin.x - 9}
+                y={pin.y - 7}
+                width={4}
+                height={3}
+                fill={isLocked ? "#2a2a2a" : "#d8c890"}
+                stroke="#3a2a10"
+                strokeWidth={1}
+              />
+              <rect
+                x={pin.x - 2}
+                y={pin.y - 7}
+                width={4}
+                height={3}
+                fill={isLocked ? "#2a2a2a" : "#d8c890"}
+                stroke="#3a2a10"
+                strokeWidth={1}
+              />
+              <rect
+                x={pin.x + 5}
+                y={pin.y - 7}
+                width={4}
+                height={3}
+                fill={isLocked ? "#2a2a2a" : "#d8c890"}
+                stroke="#3a2a10"
+                strokeWidth={1}
+              />
+              {/* Flagpole + flag */}
+              <line
+                x1={pin.x}
+                y1={pin.y - 7}
+                x2={pin.x}
+                y2={pin.y - 20}
+                stroke="#3a2a10"
+                strokeWidth={1.5}
+              />
+              <polygon
+                points={`${pin.x},${pin.y - 20} ${pin.x + 10},${pin.y - 17} ${pin.x},${pin.y - 14}`}
+                fill={flag}
+              />
+              {/* Label */}
               <text
-                x={r.label.x}
-                y={r.label.y}
+                x={pin.x}
+                y={pin.y + 22}
                 textAnchor="middle"
-                fontSize={12}
+                fontSize={11}
                 fontWeight={700}
                 fill="#ffffff"
                 stroke="#000000"
@@ -208,8 +325,8 @@ export function WorldMapPanel({ state, onTravel, onClose }: Props) {
               </text>
               {status === "current" && (
                 <text
-                  x={r.label.x}
-                  y={r.label.y + 14}
+                  x={pin.x}
+                  y={pin.y + 33}
                   textAnchor="middle"
                   fontSize={9}
                   fill="#ccff44"
@@ -220,14 +337,26 @@ export function WorldMapPanel({ state, onTravel, onClose }: Props) {
               )}
               {status === "settled" && (
                 <text
-                  x={r.label.x}
-                  y={r.label.y + 14}
+                  x={pin.x}
+                  y={pin.y + 33}
                   textAnchor="middle"
                   fontSize={9}
                   fill="#88aacc"
                   style={{ pointerEvents: "none" }}
                 >
                   settled
+                </text>
+              )}
+              {status === "locked" && (
+                <text
+                  x={pin.x}
+                  y={pin.y + 33}
+                  textAnchor="middle"
+                  fontSize={9}
+                  fill="#666"
+                  style={{ pointerEvents: "none" }}
+                >
+                  locked
                 </text>
               )}
             </g>
@@ -256,7 +385,7 @@ export function WorldMapPanel({ state, onTravel, onClose }: Props) {
 
         {selStatus === "current" && (
           <div className="wm-locked-reason">
-            you are here. travel to a different territory to settle this one.
+            you are here. capture another city to settle this one.
           </div>
         )}
 
@@ -310,7 +439,7 @@ export function WorldMapPanel({ state, onTravel, onClose }: Props) {
                 className="wm-btn"
                 onClick={() => setConfirming(selectedCity)}
               >
-                capture this territory
+                capture this city
               </button>
             )}
           </>
@@ -331,9 +460,9 @@ function statusFor(id: CityId, world: GameState["world"]): Status {
   return prereqsMet ? "reachable" : "locked";
 }
 
-function strokeFor(status: Status): string {
+function flagColorFor(status: Status): string {
   if (status === "current") return "#ccff44";
   if (status === "settled") return "#88aacc";
-  if (status === "reachable") return "#aacc88";
-  return "#3a3a3a";
+  if (status === "reachable") return "#ffcc44";
+  return "#555";
 }
