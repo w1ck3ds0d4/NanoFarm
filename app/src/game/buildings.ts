@@ -186,7 +186,11 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     unlock: { resource: "credits", gte: 50 },
     staffNeed: { worker: 2 },
     ops: {
-      produces: { iron: 0.4 },
+      // Mines also yield a stone trickle as byproduct, so a city
+      // without a Quarry can still slowly accumulate stone for
+      // early buildings (academy, market). Quarry remains the
+      // specialist (5x the rate).
+      produces: { iron: 0.4, stone: 0.1 },
       powerNeed: 1,
       upkeep: 0.3,
       boost: { consumes: { tools: 0.05 }, multiplier: 1.6 }
@@ -198,7 +202,9 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     category: "harvest",
     baseCost: 150,
     costGrowth: 1.22,
-    materialCost: { wood: 5, stone: 2 },
+    // No stone in the build cost: Quarry IS the stone source, so
+    // requiring stone to build it would softlock the tech chain.
+    materialCost: { wood: 5 },
     requiresTech: "industry",
     staffNeed: { worker: 2 },
     ops: {
@@ -276,7 +282,7 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     category: "commerce",
     baseCost: 200,
     costGrowth: 1.22,
-    materialCost: { wood: 4, stone: 2 },
+    materialCost: { wood: 4 },
     requiresTech: "commerce",
     staffNeed: { worker: 2 },
     ops: {
@@ -305,12 +311,12 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     category: "people",
     baseCost: 150,
     costGrowth: 1.22,
-    materialCost: { wood: 4, stone: 2 },
+    // Wood only - stone-gated academies were unreachable until
+    // late game (quarry needed industry tech, industry tech needed
+    // research, research needed academy).
+    materialCost: { wood: 4 },
     unlock: { resource: "credits", gte: 120 },
     ops: { upkeep: 0.5, powerNeed: 1 }
-    // No tech gate: without academy you can't train researchers,
-    // and without researchers you can't run labs (which would lock
-    // out the whole tech tree). Academy unlocks at 120 cr instead.
   },
   barracks: {
     id: "barracks",
