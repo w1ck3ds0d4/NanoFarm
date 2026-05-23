@@ -86,13 +86,18 @@ export class VsCodeStorageAdapter implements StorageAdapter {
   }
 }
 
+// The VS Code webview only lets acquireVsCodeApi() be called once per
+// document. Cache the handle (and the resulting adapter) at module
+// scope so re-renders, StrictMode double-mounts, and any other
+// repeat callers all share the same instance.
+let cachedAdapter: StorageAdapter | null = null;
+
 export function createStorageAdapter(): StorageAdapter {
-  // When loaded inside the extension's WebviewPanel, VS Code injects
-  // `acquireVsCodeApi`. Otherwise we're running standalone (Vite
-  // dev / preview / static host) and fall back to localStorage. Two
-  // independent worlds, same StorageAdapter interface.
+  if (cachedAdapter) return cachedAdapter;
   if (typeof window !== "undefined" && typeof window.acquireVsCodeApi === "function") {
-    return new VsCodeStorageAdapter(window.acquireVsCodeApi());
+    cachedAdapter = new VsCodeStorageAdapter(window.acquireVsCodeApi());
+  } else {
+    cachedAdapter = new LocalStorageAdapter();
   }
-  return new LocalStorageAdapter();
+  return cachedAdapter;
 }
