@@ -214,6 +214,24 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
       boost: { consumes: { tools: 0.05 }, multiplier: 1.6 }
     }
   },
+  well: {
+    id: "well",
+    label: "Well",
+    category: "harvest",
+    baseCost: 60,
+    costGrowth: 1.2,
+    materialCost: { wood: 3 },
+    unlock: { resource: "credits", gte: 50 },
+    staffNeed: { worker: 1 },
+    ops: {
+      // Basic water source. About half a Water Pump's output, no
+      // power demand, no tech gate - meant to keep mid-size cities
+      // alive until the player researches Engineering for the
+      // pump.
+      waterSupply: 4,
+      upkeep: 0.1
+    }
+  },
   water_pump: {
     id: "water_pump",
     label: "Water Pump",
@@ -226,6 +244,23 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     ops: {
       waterSupply: 8,
       powerNeed: 2,
+      upkeep: 0.2
+    }
+  },
+  windmill: {
+    id: "windmill",
+    label: "Windmill",
+    category: "industry",
+    baseCost: 120,
+    costGrowth: 1.22,
+    materialCost: { wood: 5 },
+    unlock: { resource: "credits", gte: 80 },
+    ops: {
+      // Basic power source. ~1/3 of a Power Plant's output, no
+      // staff needed, no fuel cost - just sits there and turns.
+      // Lets the player scale past the free baseline before
+      // committing to Heavy Industry tech.
+      powerSupply: 6,
       upkeep: 0.2
     }
   },

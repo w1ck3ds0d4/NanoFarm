@@ -48,7 +48,9 @@ export type BuildingId =
   | "lumber_mill"
   | "mine"
   | "quarry"
+  | "well"
   | "water_pump"
+  | "windmill"
   | "power_plant"
   | "workshop"
   | "factory"
@@ -67,7 +69,9 @@ export const BUILDING_IDS: readonly BuildingId[] = [
   "lumber_mill",
   "mine",
   "quarry",
+  "well",
   "water_pump",
+  "windmill",
   "power_plant",
   "workshop",
   "factory",
@@ -280,7 +284,9 @@ export function makeInitialState(now: number, seed?: number): GameState {
       barracks: { id: "barracks", count: 0 },
       lab: { id: "lab", count: 0 },
       granary: { id: "granary", count: 0 },
-      wonder: { id: "wonder", count: 0 }
+      wonder: { id: "wonder", count: 0 },
+      well: { id: "well", count: 0 },
+      windmill: { id: "windmill", count: 0 }
     },
     events: {
       firedIds: [],

@@ -271,6 +271,20 @@ const WORKSHOP_PALETTE: BuildingPalette = {
   accent: 0xffc888
 };
 
+const WELL_PALETTE: BuildingPalette = {
+  top: 0x6a8898,
+  right: 0x2a4858,
+  left: 0x142838,
+  accent: 0x6acccf
+};
+
+const WINDMILL_PALETTE: BuildingPalette = {
+  top: 0xe8e0c8,
+  right: 0xa89878,
+  left: 0x685830,
+  accent: 0xffffff
+};
+
 const PALETTES: Record<BuildingId, BuildingPalette> = {
   main: MAIN_PALETTE,
   farm: FARM_PALETTE,
@@ -288,7 +302,9 @@ const PALETTES: Record<BuildingId, BuildingPalette> = {
   power_plant: POWER_PLANT_PALETTE,
   wonder: WONDER_PALETTE,
   water_pump: WATER_PUMP_PALETTE,
-  workshop: WORKSHOP_PALETTE
+  workshop: WORKSHOP_PALETTE,
+  well: WELL_PALETTE,
+  windmill: WINDMILL_PALETTE
 };
 
 function buildingHeight(kind: BuildingId): number {
@@ -496,6 +512,22 @@ export function drawIsoBuilding(g: Graphics, kind: BuildingId, dim = false): voi
     g.rect(TILE_W / 2 - 1, TILE_H / 2 - H - 5, 2, 3);
     g.fill({ color: p.accent, alpha });
     g.rect(TILE_W / 2 - 3, TILE_H / 2 - 2, 6, 2);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "well") {
+    // Well: stone ring + circular dark water pool on top + bucket handle
+    g.circle(TILE_W / 2, TILE_H / 2 - H + 2, 5);
+    g.fill({ color: p.accent, alpha });
+    g.circle(TILE_W / 2, TILE_H / 2 - H + 2, 3);
+    g.fill({ color: 0x0a1828, alpha });
+    g.rect(TILE_W / 2 - 1, TILE_H / 2 - H - 4, 2, 4);
+    g.fill({ color: p.left, alpha });
+  } else if (kind === "windmill") {
+    // Windmill: tall pole + crossed sails on top
+    g.rect(TILE_W / 2 - 1, TILE_H / 2 - H - 8, 2, 10);
+    g.fill({ color: p.right, alpha });
+    g.rect(TILE_W / 2 - 7, TILE_H / 2 - H - 7, 14, 1);
+    g.fill({ color: p.accent, alpha });
+    g.rect(TILE_W / 2 - 1, TILE_H / 2 - H - 12, 1, 10);
     g.fill({ color: p.accent, alpha });
   } else if (kind === "water_pump") {
     // Water pump: a curved spout + droplet, plus a horizontal handle.
