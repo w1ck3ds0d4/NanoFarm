@@ -1110,13 +1110,21 @@ button:disabled {
   color: #cce0ff;
 }
 
-.wm-svg {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 340px;
+.wm-map-wrap {
+  display: flex;
+  justify-content: center;
+  background: rgba(8, 16, 28, 0.6);
   border: 1px solid #2a4060;
   margin-bottom: 10px;
+  padding: 8px 0;
+}
+
+.wm-svg {
+  display: block;
+  height: auto;
+  max-height: 380px;
+  width: auto;
+  max-width: 100%;
 }
 
 .wm-region {
