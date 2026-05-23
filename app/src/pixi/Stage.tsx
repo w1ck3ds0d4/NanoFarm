@@ -23,6 +23,9 @@ interface Props {
   onTileClick?: (tx: number, ty: number) => void;
   onCameraChange?: (cx: number, cy: number) => void;
   onZoomChange?: (z: number) => void;
+  /** Fires when the cursor enters a new tile (de-duped per tile, not
+   * per pixel) and when the cursor leaves the canvas (with null). */
+  onHoverChange?: (tile: { tx: number; ty: number } | null) => void;
 }
 
 const MIN_ZOOM = 0.6;
@@ -42,7 +45,8 @@ export function Stage({
   height,
   onTileClick,
   onCameraChange,
-  onZoomChange
+  onZoomChange,
+  onHoverChange
 }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const appRef = useRef<Application | null>(null);
@@ -65,6 +69,7 @@ export function Stage({
     onTileClick,
     onCameraChange,
     onZoomChange,
+    onHoverChange,
     width,
     height
   });
@@ -76,6 +81,7 @@ export function Stage({
     onTileClick,
     onCameraChange,
     onZoomChange,
+    onHoverChange,
     width,
     height
   };
@@ -177,7 +183,9 @@ export function Stage({
       }
       return;
     }
-    if (propsRef.current.selectMode === null) return;
+    // Always track hover even outside placement mode - the parent uses
+    // it for the building tooltip, and the Pixi placement preview
+    // still re-renders only when placement is active.
     const { sx, sy } = localPos(e);
     const { tx, ty } = screenToTile(
       sx,
@@ -191,7 +199,8 @@ export function Stage({
     const prev = hoverRef.current;
     if (!prev || prev.x !== tx || prev.y !== ty) {
       hoverRef.current = { x: tx, y: ty };
-      doRender();
+      propsRef.current.onHoverChange?.({ tx, ty });
+      if (propsRef.current.selectMode !== null) doRender();
     }
   }
 
@@ -218,6 +227,7 @@ export function Stage({
     dragRef.current = null;
     if (hoverRef.current) {
       hoverRef.current = null;
+      propsRef.current.onHoverChange?.(null);
       doRender();
     }
   }

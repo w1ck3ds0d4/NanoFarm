@@ -18,6 +18,7 @@ import { BUILDING_DEFS } from "./game/buildings";
 import { Stage } from "./pixi/Stage";
 import { BuildPalette, type Placeable } from "./ui/BuildPalette";
 import { BuildingInspector } from "./ui/BuildingInspector";
+import { BuildingTooltip } from "./ui/BuildingTooltip";
 import { MaterialsOverlay } from "./ui/MaterialsOverlay";
 
 const STAGE_W = 500;
@@ -47,6 +48,11 @@ export function App() {
   // selected for placement; closed by the panel's close button, by
   // tapping an empty tile, or by tapping the same building again.
   const [inspected, setInspected] = useState<string | null>(null);
+  // Hover tile reported by Stage. Used to render a small floating
+  // tooltip over placed buildings. Updates fire only when the
+  // cursor crosses into a new tile (Stage de-dupes per pixel) so
+  // App re-renders are bounded by tile transitions, not mouse pixels.
+  const [hoverTile, setHoverTile] = useState<{ tx: number; ty: number } | null>(null);
   const [cameraX, setCameraX] = useState(75);
   const [cameraY, setCameraY] = useState(75);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
@@ -198,7 +204,28 @@ export function App() {
           onTileClick={onTileClick}
           onCameraChange={onCameraChange}
           onZoomChange={setZoom}
+          onHoverChange={setHoverTile}
         />
+
+        {/* Hover tooltip for placed buildings. Suppressed during
+            placement (selectMode is on - the Pixi ghost preview is
+            authoritative there) and while the inspector is open
+            (the panel already shows fuller info). */}
+        {!selected && !inspected && hoverTile &&
+         state.map.placed[`${hoverTile.tx},${hoverTile.ty}`] && (
+          <BuildingTooltip
+            state={state}
+            terrain={terrain}
+            connected={connected}
+            tx={hoverTile.tx}
+            ty={hoverTile.ty}
+            cameraX={cameraX}
+            cameraY={cameraY}
+            zoom={zoom}
+            canvasW={STAGE_W}
+            canvasH={STAGE_H}
+          />
+        )}
 
         <div className="top-hud">
           <h1 className="game-title">NanoFarm</h1>
