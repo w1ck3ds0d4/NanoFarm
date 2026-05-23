@@ -14,6 +14,7 @@ import {
   BUILDING_DEFS,
   ROAD_COST,
   TECH_DEFS,
+  buildingSize,
   canAffordMaterials,
   costFor,
   productionFor,
@@ -80,33 +81,47 @@ export function reducer(state: GameState, action: Action): GameState {
       const def = BUILDING_DEFS[action.building];
       const owned = state.buildings[action.building].count;
       if (def.maxCount !== undefined && owned >= def.maxCount) return state;
-      // Tech-gated buildings stay un-placeable until their tech is
-      // researched, even if the player conjures the action elsewhere.
       if (def.requiresTech && !state.techs[def.requiresTech]) return state;
       const cost = costFor(def, owned);
       if (state.resources.credits < cost) return state;
       if (!canAffordMaterials(def, state.resources as unknown as Record<string, number>)) return state;
-      const key = `${action.x},${action.y}`;
-      if (state.map.placed[key]) return state;
-      if (state.map.roads[key]) return state;
-      // Non-main buildings must touch main or a road on a 4-cardinal
-      // neighbour. Without this check the player can spend credits on a
-      // stranded farm/house/mine that never connects and never produces,
-      // which combined with the post-purchase 0-credit state is a
-      // soft-lock. The BuildPalette hint already tells the player this;
-      // the reducer now enforces it.
+      // Footprint covers (ox..ox+size-1, oy..oy+size-1). For size=1
+      // this is a single tile, matching the legacy code path.
+      const size = buildingSize(action.building);
+      const footprint: Array<[number, number, string]> = [];
+      for (let dy = 0; dy < size; dy++) {
+        for (let dx = 0; dx < size; dx++) {
+          const fx = action.x + dx;
+          const fy = action.y + dy;
+          footprint.push([fx, fy, `${fx},${fy}`]);
+        }
+      }
+      // Every footprint tile must be in-bounds, unoccupied, and not a
+      // road. We check bounds against map width/height.
+      for (const [fx, fy, fkey] of footprint) {
+        if (fx < 0 || fx >= state.map.width) return state;
+        if (fy < 0 || fy >= state.map.height) return state;
+        if (state.map.placed[fkey]) return state;
+        if (state.map.roads[fkey]) return state;
+      }
+      // Connectivity: any of the footprint tiles must touch main or a
+      // road on a 4-cardinal neighbour. Tiles INSIDE the footprint
+      // do not count as neighbours of each other (would be self-
+      // satisfying for size >= 2). Main is the exception - it places
+      // anywhere.
       if (action.building !== "main") {
-        const neighbors: Array<[number, number]> = [
-          [action.x - 1, action.y],
-          [action.x + 1, action.y],
-          [action.x, action.y - 1],
-          [action.x, action.y + 1],
-        ];
-        const connectsToNetwork = neighbors.some(([nx, ny]) => {
-          const nKey = `${nx},${ny}`;
-          if (state.map.roads[nKey]) return true;
-          if (state.map.placed[nKey] === "main") return true;
-          return false;
+        const footprintKeys = new Set(footprint.map(([, , k]) => k));
+        const connectsToNetwork = footprint.some(([fx, fy]) => {
+          const around: Array<[number, number]> = [
+            [fx - 1, fy], [fx + 1, fy], [fx, fy - 1], [fx, fy + 1]
+          ];
+          return around.some(([nx, ny]) => {
+            const nKey = `${nx},${ny}`;
+            if (footprintKeys.has(nKey)) return false;
+            if (state.map.roads[nKey]) return true;
+            if (state.map.placed[nKey]) return true; // main or any building
+            return false;
+          });
         });
         if (!connectsToNetwork) return state;
       }
@@ -120,6 +135,13 @@ export function reducer(state: GameState, action: Action): GameState {
           nextResources[k] = Math.max(0, nextResources[k] - (amt ?? 0));
         }
       }
+      const nextPlaced = { ...state.map.placed };
+      const nextOrigins = { ...(state.map.multiTileOrigin ?? {}) };
+      const originKey = `${action.x},${action.y}`;
+      for (const [, , fkey] of footprint) {
+        nextPlaced[fkey] = action.building;
+        if (fkey !== originKey) nextOrigins[fkey] = originKey;
+      }
       return {
         ...state,
         resources: nextResources,
@@ -129,7 +151,8 @@ export function reducer(state: GameState, action: Action): GameState {
         },
         map: {
           ...state.map,
-          placed: { ...state.map.placed, [key]: action.building }
+          placed: nextPlaced,
+          multiTileOrigin: nextOrigins
         }
       };
     }
@@ -137,27 +160,34 @@ export function reducer(state: GameState, action: Action): GameState {
       const rKey = `${action.x},${action.y}`;
       const id = state.map.placed[rKey];
       if (!id) return state;
-      // Main is the network anchor; removing it would orphan every
-      // other building and is rarely what the player meant. The
-      // inspector hides the remove button for main, but guard at the
-      // reducer too so an out-of-UI dispatch can't strand the world.
       if (id === "main") return state;
       const def = BUILDING_DEFS[id];
       const count = state.buildings[id].count;
       if (count <= 0) return state;
-      // Refund 50% of the most-recent placement cost. cost grows with
-      // count, so the "last" one paid was costFor(def, count - 1).
-      // Floor to keep credits as integers.
+      // Resolve the origin tile - the caller may have clicked any
+      // tile within a multi-tile footprint. From the origin, we
+      // re-derive the full footprint by building size.
+      const origins = state.map.multiTileOrigin ?? {};
+      const originKey = origins[rKey] ?? rKey;
+      const [oxStr, oyStr] = originKey.split(",");
+      const ox = Number(oxStr);
+      const oy = Number(oyStr);
+      const size = buildingSize(id);
       const lastCost = costFor(def, count - 1);
       const refund = Math.floor(lastCost * 0.5);
       const nextPlaced: typeof state.map.placed = { ...state.map.placed };
-      delete nextPlaced[rKey];
+      const nextOrigins: Record<string, string> = { ...origins };
+      for (let dy = 0; dy < size; dy++) {
+        for (let dx = 0; dx < size; dx++) {
+          const fk = `${ox + dx},${oy + dy}`;
+          delete nextPlaced[fk];
+          delete nextOrigins[fk];
+        }
+      }
       const refundedResources: ResourceMap = {
         ...state.resources,
         credits: state.resources.credits + refund
       };
-      // Materials refund 50% (floored, integer). Materials are flat,
-      // not growing with count, so the refund equation is symmetric.
       if (def.materialCost) {
         for (const [mat, amt] of Object.entries(def.materialCost)) {
           const k = mat as ResourceId;
@@ -171,7 +201,7 @@ export function reducer(state: GameState, action: Action): GameState {
           ...state.buildings,
           [id]: { id, count: count - 1 }
         },
-        map: { ...state.map, placed: nextPlaced }
+        map: { ...state.map, placed: nextPlaced, multiTileOrigin: nextOrigins }
       };
     }
     case "place-road": {
@@ -388,12 +418,16 @@ export function computeProduction(
 
   // Total demand for each staff type, summed across connected,
   // staff-needing buildings. Disconnected buildings are idle so they
-  // do not draw staff (matches their production behaviour).
+  // do not draw staff. Multi-tile buildings only count their origin
+  // tile - every footprint tile shares the same BuildingId in
+  // `placed`, so we have to skip the non-origin entries here.
+  const origins = state.map.multiTileOrigin ?? {};
   let workerDemand = 0;
   let researcherDemand = 0;
   let militaryDemand = 0;
   for (const [key, id] of Object.entries(state.map.placed) as [string, BuildingId][]) {
     if (id === "main") continue;
+    if (origins[key]) continue; // non-origin footprint tile
     if (!connected.has(key)) continue;
     const need = BUILDING_DEFS[id]?.staffNeed;
     if (!need) continue;
@@ -411,6 +445,7 @@ export function computeProduction(
 
   for (const [key, id] of Object.entries(state.map.placed) as [string, BuildingId][]) {
     if (id === "main") continue;
+    if (origins[key]) continue; // non-origin footprint tile - already counted via origin
     if (!connected.has(key)) continue;
     const [x, y] = key.split(",").map(Number);
     const rules = productionFor(id, neighborsAt(x, y), neighborBuildingsAt(state, x, y));

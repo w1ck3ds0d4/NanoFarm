@@ -238,6 +238,20 @@ const BARRACKS_PALETTE: BuildingPalette = {
   accent: 0xe88858
 };
 
+const POWER_PLANT_PALETTE: BuildingPalette = {
+  top: 0x88787a,
+  right: 0x4a3a3c,
+  left: 0x281a1c,
+  accent: 0xffcc44
+};
+
+const WONDER_PALETTE: BuildingPalette = {
+  top: 0xeec888,
+  right: 0xa87838,
+  left: 0x603810,
+  accent: 0xffee88
+};
+
 const PALETTES: Record<BuildingId, BuildingPalette> = {
   main: MAIN_PALETTE,
   farm: FARM_PALETTE,
@@ -251,13 +265,98 @@ const PALETTES: Record<BuildingId, BuildingPalette> = {
   factory: FACTORY_PALETTE,
   school: SCHOOL_PALETTE,
   academy: ACADEMY_PALETTE,
-  barracks: BARRACKS_PALETTE
+  barracks: BARRACKS_PALETTE,
+  power_plant: POWER_PLANT_PALETTE,
+  wonder: WONDER_PALETTE
 };
 
 function buildingHeight(kind: BuildingId): number {
   if (kind === "main") return MAIN_BUILDING_HEIGHT;
   if (kind === "factory" || kind === "lab" || kind === "academy") return TALL_BUILDING_HEIGHT;
+  if (kind === "power_plant") return TALL_BUILDING_HEIGHT + 8;
+  if (kind === "wonder") return TALL_BUILDING_HEIGHT + 20;
   return BUILDING_HEIGHT;
+}
+
+/**
+ * Draws an iso building whose base footprint is an N x N tile diamond
+ * anchored at the origin tile's top-left. For N=1 the footprint is a
+ * single tile diamond, matching drawIsoBuilding's geometry. For
+ * larger N the base diamond grows accordingly and the building body
+ * scales up too.
+ *
+ * Math: tile (ox+dx, oy+dy) sits at iso screen-delta
+ *   ((dx - dy) * TILE_W/2, (dx + dy) * TILE_H/2)
+ * from the origin tile. The footprint diamond's four extreme corners
+ * are at the north corner of (ox, oy), the east corner of
+ * (ox+N-1, oy), the south corner of (ox+N-1, oy+N-1), and the west
+ * corner of (ox, oy+N-1):
+ *   N: (TILE_W/2, 0)
+ *   E: ((N+1)*TILE_W/2, N*TILE_H/2)
+ *   S: (TILE_W/2, N*TILE_H)
+ *   W: (-(N-1)*TILE_W/2, N*TILE_H/2)
+ */
+export function drawIsoBuildingSized(
+  g: Graphics,
+  kind: BuildingId,
+  size: number,
+  dim = false,
+): void {
+  g.clear();
+  if (size <= 1) {
+    drawIsoBuildingBody(g, kind, dim);
+    return;
+  }
+  const p = PALETTES[kind];
+  const alpha = dim ? 0.45 : 1;
+  const H = buildingHeight(kind);
+  const N = size;
+  // Base diamond corners
+  const nx = TILE_W / 2,        ny = 0;
+  const ex = ((N + 1) * TILE_W) / 2, ey = (N * TILE_H) / 2;
+  const sx = TILE_W / 2,        sy = N * TILE_H;
+  const wx_ = -((N - 1) * TILE_W) / 2, wy_ = (N * TILE_H) / 2;
+
+  // Right (SE) face: top-east, base-east, base-south, top-south
+  g.poly([ex, ey - H, ex, ey, sx, sy, sx, sy - H]);
+  g.fill({ color: p.right, alpha });
+  // Left (SW) face: top-south, base-south, base-west, top-west
+  g.poly([sx, sy - H, sx, sy, wx_, wy_, wx_, wy_ - H]);
+  g.fill({ color: p.left, alpha });
+  // Roof diamond at the top
+  g.poly([nx, ny - H, ex, ey - H, sx, sy - H, wx_, wy_ - H]);
+  g.fill({ color: p.top, alpha });
+
+  if (kind === "power_plant") {
+    // 2x2: stack of 3 thick smokestacks across the roof
+    const stackY = ny - H + 4;
+    for (let i = 0; i < 3; i++) {
+      const cx = nx + (i - 1) * 10;
+      g.rect(cx - 3, stackY, 6, 10);
+      g.fill({ color: p.left, alpha });
+      g.circle(cx, stackY - 3, 4);
+      g.fill({ color: p.accent, alpha });
+    }
+    // Glowing core in front face
+    g.rect(sx - 6, sy - H / 2, 12, 6);
+    g.fill({ color: p.accent, alpha });
+  } else if (kind === "wonder") {
+    // 3x3: peaked monument with a glowing crown
+    const peakY = ny - H - 8;
+    g.poly([nx - 8, ny - H, nx + 8, ny - H, nx, peakY]);
+    g.fill({ color: p.accent, alpha });
+    g.circle(nx, peakY - 4, 4);
+    g.fill({ color: p.accent, alpha });
+    // Big door at base front
+    g.rect(sx - 4, sy - H / 3, 8, H / 3);
+    g.fill({ color: p.left, alpha });
+  }
+}
+
+function drawIsoBuildingBody(g: Graphics, kind: BuildingId, dim: boolean): void {
+  // Delegates to the original single-tile draw path so existing
+  // accent code for each 1x1 building stays as-is.
+  drawIsoBuilding(g, kind, dim);
 }
 
 export function drawIsoBuilding(g: Graphics, kind: BuildingId, dim = false): void {

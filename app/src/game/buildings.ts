@@ -46,6 +46,11 @@ export interface BuildingDef {
    * job type cannot cover the global total, every building of this
    * type produces at the available/needed ratio. */
   staffNeed?: StaffNeed;
+  /** Footprint side length in tiles. 1 (default) = single-tile.
+   * 2 = 2x2 footprint, 3 = 3x3, 5 = 5x5. The origin tile is the
+   * north-most tile of the footprint; the footprint extends to
+   * (ox+size-1, oy+size-1). */
+  size?: number;
 }
 
 export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
@@ -166,6 +171,28 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     costGrowth: 1.2,
     materialCost: { wood: 3 },
     unlock: { resource: "credits", gte: 80 }
+  },
+  power_plant: {
+    id: "power_plant",
+    label: "Power Plant",
+    category: "tech",
+    baseCost: 1200,
+    costGrowth: 1.3,
+    materialCost: { wood: 6, stone: 12, iron: 8 },
+    requiresTech: "heavy_industry",
+    staffNeed: { worker: 8 },
+    size: 2
+  },
+  wonder: {
+    id: "wonder",
+    label: "Wonder",
+    category: "tech",
+    baseCost: 5000,
+    costGrowth: 1.5,
+    materialCost: { wood: 20, stone: 40, iron: 30 },
+    requiresTech: "heavy_industry",
+    maxCount: 1,
+    size: 3
   }
 };
 
@@ -329,7 +356,23 @@ export function productionFor(
     out.credits = 4;
     out.stone = 0.1;
     out.iron = 0.1;
+  } else if (id === "power_plant") {
+    // 2x2 industrial complex. Big credits + iron + stone but eats
+    // 8 workers, so it only pays off late game with full schools.
+    out.credits = 12;
+    out.iron = 0.3;
+    out.stone = 0.3;
+  } else if (id === "wonder") {
+    // 3x3 vanity. Token research per second; the real reward is
+    // legacy / vanity, not the per-second income.
+    out.research = 0.5;
+    out.credits = 2;
   }
 
   return out;
+}
+
+/** Helper: footprint size for a building (defaults to 1). */
+export function buildingSize(id: BuildingId): number {
+  return BUILDING_DEFS[id]?.size ?? 1;
 }

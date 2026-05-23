@@ -25,11 +25,18 @@ export function hydrateMissingFields(state: GameState): GameState {
         height: DEFAULT_MAP_SIZE,
         seed: Math.floor(Math.random() * 0x7fffffff),
         placed: {},
+        multiTileOrigin: {},
         roads: {}
       }
     };
   } else if (!next.map.roads) {
     next = { ...next, map: { ...next.map, roads: {} } };
+  }
+  // Pre-multi-tile saves only had 1x1 buildings; init the
+  // origin lookup empty so downstream code can rely on it being
+  // present. New multi-tile placements populate this going forward.
+  if (!next.map.multiTileOrigin) {
+    next = { ...next, map: { ...next.map, multiTileOrigin: {} } };
   }
   if (!next.buildings.main) {
     next = {

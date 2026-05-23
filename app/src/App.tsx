@@ -153,7 +153,11 @@ export function App() {
     // close-on-empty.
     if (!selected) {
       if (state.map.placed[key]) {
-        setInspected((current) => (current === key ? null : key));
+        // For multi-tile buildings, normalize to the origin so the
+        // inspector always opens against the same tile regardless of
+        // which footprint cell the player clicked.
+        const origin = state.map.multiTileOrigin?.[key] ?? key;
+        setInspected((current) => (current === origin ? null : origin));
       } else {
         setInspected(null);
       }
@@ -361,8 +365,12 @@ export function App() {
               "click a green tile to place your main building."}
             {selected === "road" &&
               "click a tile adjacent to main, an existing road, or a building."}
-            {selected !== "main" && selected !== "road" &&
-              "click a green tile adjacent to main or a road."}
+            {selected !== "main" && selected !== "road" && (() => {
+              const size = BUILDING_DEFS[selected].size ?? 1;
+              return size > 1
+                ? `click the north tile - building extends ${size}x${size} to the south-east.`
+                : "click a green tile adjacent to main or a road.";
+            })()}
           </div>
         )}
 

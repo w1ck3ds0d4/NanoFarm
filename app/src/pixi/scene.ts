@@ -1,8 +1,9 @@
 import { Application, Container, Graphics } from "pixi.js";
 import type { GameState, BuildingId } from "@nanofarm/shared";
 import { isBuildable, terrainAt } from "@nanofarm/shared";
+import { buildingSize } from "../game/buildings";
 import {
-  drawIsoBuilding,
+  drawIsoBuildingSized,
   drawIsoRoad,
   drawTerrainTile,
   TILE_W,
@@ -232,10 +233,22 @@ export function renderScene(scene: Scene, p: RenderParams): void {
   const FADE_RADIUS = 4;
   const FADE_ALPHA = 0.25;
 
+  const origins = p.state.map.multiTileOrigin ?? {};
   const wantedBuildings = new Set<string>();
   for (const [key, id] of Object.entries(p.state.map.placed) as [string, BuildingId][]) {
+    // Skip non-origin footprint tiles: only the origin draws the
+    // multi-tile sprite. (For 1x1 buildings every tile is its own
+    // origin and origins[key] is undefined, so this is a no-op.)
+    if (origins[key]) continue;
     const [wx, wy] = key.split(",").map(Number);
-    if (wx < vis.x0 - 1 || wx > vis.x1 || wy < vis.y0 - 1 || wy > vis.y1) continue;
+    const size = buildingSize(id);
+    // Cull using the building's south-east corner so a multi-tile
+    // building stays in the pool even when its origin tile scrolls
+    // out of view but its body is still visible.
+    if (
+      wx + size - 1 < vis.x0 - 1 || wx > vis.x1 ||
+      wy + size - 1 < vis.y0 - 1 || wy > vis.y1
+    ) continue;
     wantedBuildings.add(key);
 
     let g = scene.buildingsPool.get(key);
@@ -245,20 +258,25 @@ export function renderScene(scene: Scene, p: RenderParams): void {
       scene.buildingsPool.set(key, g);
     }
     const isDisconnected = id !== "main" && !p.connected.has(key);
-    drawIsoBuilding(g, id, isDisconnected);
+    drawIsoBuildingSized(g, id, size, isDisconnected);
     const { sx, sy } = tileToScreen(wx, wy, p.cameraX, p.cameraY, p.canvasW, p.canvasH, p.zoom);
     g.position.set(sx, sy);
     g.scale.set(p.zoom);
-    g.zIndex = wx + wy;
+    // zIndex from the south-east corner so a multi-tile sprite
+    // draws after any 1x1 tile that lives inside or behind its
+    // footprint.
+    g.zIndex = (wx + size - 1) + (wy + size - 1);
 
     let alpha = 1;
     if (fadeActive) {
-      const dx = wx - (p.hoverX as number);
-      const dy = wy - (p.hoverY as number);
+      // Compare hover to any footprint tile (use closest corner).
+      const dxRaw = wx - (p.hoverX as number);
+      const dyRaw = wy - (p.hoverY as number);
+      const dx = Math.max(0, dxRaw);
+      const dy = Math.max(0, dyRaw);
+      const isInFront = dxRaw >= 0 && dyRaw >= 0 && (dxRaw > 0 || dyRaw > 0);
       const occludes =
-        dx >= 0 &&
-        dy >= 0 &&
-        (dx > 0 || dy > 0) &&
+        isInFront &&
         dx <= FADE_RADIUS &&
         dy <= FADE_RADIUS;
       if (occludes) alpha = FADE_ALPHA;

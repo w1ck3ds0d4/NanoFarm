@@ -46,7 +46,9 @@ export type BuildingId =
   | "factory"
   | "school"
   | "academy"
-  | "barracks";
+  | "barracks"
+  | "power_plant"
+  | "wonder";
 
 export const BUILDING_IDS: readonly BuildingId[] = [
   "main",
@@ -62,6 +64,8 @@ export const BUILDING_IDS: readonly BuildingId[] = [
   "school",
   "academy",
   "barracks",
+  "power_plant",
+  "wonder",
 ] as const;
 
 export type JobId = "idle" | "worker" | "researcher" | "military";
@@ -155,8 +159,15 @@ export interface MapState {
   width: number;
   height: number;
   seed: number;
-  /** map of "x,y" -> BuildingId. terrain is regenerated from the seed. */
+  /** map of "x,y" -> BuildingId. EVERY footprint tile of a building
+   * is stamped here, so occupancy checks remain a single lookup
+   * regardless of building size. */
   placed: Record<string, BuildingId>;
+  /** Footprint tile key -> origin tile key. Only populated for
+   * multi-tile buildings; for 1x1 the entry is absent and the
+   * caller treats the tile itself as the origin. Used by render +
+   * remove + inspector to find the canonical anchor of a building. */
+  multiTileOrigin?: Record<string, string>;
   /** set of road tiles, keyed "x,y". value is always true. */
   roads: Record<string, true>;
 }
@@ -203,7 +214,9 @@ export function makeInitialState(now: number, seed?: number): GameState {
       factory: { id: "factory", count: 0 },
       school: { id: "school", count: 0 },
       academy: { id: "academy", count: 0 },
-      barracks: { id: "barracks", count: 0 }
+      barracks: { id: "barracks", count: 0 },
+      power_plant: { id: "power_plant", count: 0 },
+      wonder: { id: "wonder", count: 0 }
     },
     events: {
       firedIds: [],
@@ -216,6 +229,7 @@ export function makeInitialState(now: number, seed?: number): GameState {
       height: DEFAULT_MAP_SIZE,
       seed: seed ?? pickSeed(),
       placed: {},
+      multiTileOrigin: {},
       roads: {}
     },
     techs: {
