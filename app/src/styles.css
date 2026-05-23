@@ -485,6 +485,27 @@ button:disabled {
   line-height: 1.4;
 }
 
+.ip-remove {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 1px solid #5a2a1a;
+  color: #cc6644;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: lowercase;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ip-remove:hover {
+  background: #2a1a14;
+  border-color: #ff6644;
+  color: #ff8866;
+}
+
 /* ============ STAGE HINT ============ */
 .stage-hint {
   position: absolute;
