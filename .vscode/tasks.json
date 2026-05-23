@@ -5,7 +5,6 @@
       "label": "build extension",
       "type": "shell",
       "command": "pnpm",
-      "windows": { "command": "pnpm.cmd" },
       "args": ["--filter", "@nanofarm/extension", "build"],
       "options": { "cwd": "${workspaceFolder}" },
       "presentation": { "reveal": "silent", "panel": "dedicated" },
