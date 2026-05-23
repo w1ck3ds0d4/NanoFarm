@@ -807,9 +807,13 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-bottom: 8px;
-  margin-bottom: 8px;
+  padding: 10px;
+  margin: -10px -10px 8px;
   border-bottom: 1px solid #18484c;
+  background: rgba(8, 14, 20, 0.97);
+  position: sticky;
+  top: -10px;
+  z-index: 10;
 }
 
 .rp-title {
@@ -1077,9 +1081,13 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-bottom: 8px;
-  margin-bottom: 8px;
+  padding: 12px;
+  margin: -12px -12px 8px;
   border-bottom: 1px solid #2a4060;
+  background: rgba(8, 12, 20, 0.97);
+  position: sticky;
+  top: -12px;
+  z-index: 10;
 }
 
 .wm-title {
