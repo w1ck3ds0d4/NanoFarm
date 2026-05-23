@@ -17,6 +17,7 @@ import { populationCapacity } from "./game/population";
 import { BUILDING_DEFS } from "./game/buildings";
 import { Stage } from "./pixi/Stage";
 import { BuildPalette, type Placeable } from "./ui/BuildPalette";
+import { BuildingInspector } from "./ui/BuildingInspector";
 import { MaterialsOverlay } from "./ui/MaterialsOverlay";
 
 const STAGE_W = 500;
@@ -41,6 +42,11 @@ export function App() {
   const [buildOpen, setBuildOpen] = useState(false);
   const [selected, setSelected] = useState<Placeable | null>(null);
   const [materialsOpen, setMaterialsOpen] = useState(false);
+  // Tile-key of the building the player is currently inspecting, or
+  // null. Opened by tapping a placed building when nothing is
+  // selected for placement; closed by the panel's close button, by
+  // tapping an empty tile, or by tapping the same building again.
+  const [inspected, setInspected] = useState<string | null>(null);
   const [cameraX, setCameraX] = useState(75);
   const [cameraY, setCameraY] = useState(75);
   const [zoom, setZoom] = useState(DEFAULT_ZOOM);
@@ -122,11 +128,25 @@ export function App() {
   }
 
   function onTileClick(tx: number, ty: number) {
-    if (!selected) return;
     if (tx < 0 || tx >= state.map.width || ty < 0 || ty >= state.map.height) return;
+    const key = `${tx},${ty}`;
+
+    // No placement is queued, so this click is a "what's here?" gesture.
+    // Tap a placed building -> open inspector (or close it if it was
+    // already showing this tile). Tap empty space -> close any open
+    // inspector. Roads are not inspectable, so they fall through to
+    // close-on-empty.
+    if (!selected) {
+      if (state.map.placed[key]) {
+        setInspected((current) => (current === key ? null : key));
+      } else {
+        setInspected(null);
+      }
+      return;
+    }
+
     const t = terrainAt(terrainRef.current, state.map.width, state.map.height, tx, ty);
     if (!isBuildable(t)) return;
-    const key = `${tx},${ty}`;
     if (state.map.placed[key]) return;
     if (state.map.roads[key]) return;
 
@@ -217,6 +237,16 @@ export function App() {
         </div>
 
         {materialsOpen && <MaterialsOverlay state={state} />}
+
+        {inspected !== null && state.map.placed[inspected] && (
+          <BuildingInspector
+            state={state}
+            terrain={terrain}
+            connected={connected}
+            inspectKey={inspected}
+            onClose={() => setInspected(null)}
+          />
+        )}
 
         {showStartHint && (
           <div className="stage-hint">

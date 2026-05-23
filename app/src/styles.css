@@ -377,6 +377,114 @@ button:disabled {
   text-align: center;
 }
 
+/* ============ BUILDING INSPECTOR ============ */
+.inspector-panel {
+  position: absolute;
+  top: 44px;
+  right: 8px;
+  width: 230px;
+  background: rgba(16, 20, 10, 0.96);
+  border: 1px solid #ccff44;
+  padding: 8px;
+  z-index: 5;
+  font-size: 10px;
+  color: #88aa33;
+}
+
+.ip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid #2a3015;
+}
+
+.ip-title {
+  flex: 1;
+  color: #ccff44;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-weight: 700;
+}
+
+.ip-coord {
+  color: #555;
+  font-size: 9px;
+}
+
+.ip-close {
+  background: transparent;
+  border: 1px solid #2a3015;
+  color: #88aa33;
+  padding: 1px 6px;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ip-close:hover {
+  background: #1a2010;
+  color: #ccff44;
+}
+
+.ip-status {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: lowercase;
+  margin-bottom: 6px;
+}
+
+.ip-status.ok {
+  color: #ccff44;
+}
+
+.ip-status.stranded {
+  color: #ff8844;
+}
+
+.ip-note {
+  color: #88aa33;
+  font-size: 10px;
+}
+
+.ip-rates {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 6px;
+}
+
+.ip-rate {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ip-rate-val {
+  color: #ccff44;
+  font-variant-numeric: tabular-nums;
+}
+
+.ip-rate-key {
+  color: #88aa33;
+}
+
+.ip-warn {
+  color: #ff8844;
+  margin-top: 4px;
+  font-size: 9px;
+}
+
+.ip-neighbors {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #2a3015;
+  color: #555;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
 /* ============ STAGE HINT ============ */
 .stage-hint {
   position: absolute;
