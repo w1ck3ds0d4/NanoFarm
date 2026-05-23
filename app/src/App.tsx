@@ -387,15 +387,13 @@ export function App() {
                 <span className="pp-x">x</span>
               </button>
             )}
-            {!buildOpen && (
-              <button
-                type="button"
-                className="build-fab"
-                onClick={() => setBuildOpen(true)}
-              >
-                build
-              </button>
-            )}
+            <button
+              type="button"
+              className={"build-fab" + (buildOpen ? " active" : "")}
+              onClick={() => setBuildOpen((o) => !o)}
+            >
+              build
+            </button>
           </div>
         </div>
 

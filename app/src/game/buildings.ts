@@ -8,9 +8,20 @@ import type {
 
 export type MaterialCost = Partial<Record<"wood" | "iron" | "stone" | "water", number>>;
 
+export type BuildingCategory = "core" | "harvest" | "tech";
+
+export const BUILDING_CATEGORIES: readonly BuildingCategory[] = ["core", "harvest", "tech"] as const;
+
+export const CATEGORY_LABEL: Record<BuildingCategory, string> = {
+  core: "Core",
+  harvest: "Harvest",
+  tech: "Tech"
+};
+
 export interface BuildingDef {
   id: BuildingId;
   label: string;
+  category: BuildingCategory;
   baseCost: number;
   costGrowth: number;
   /** Flat material cost in addition to credits. Does not scale with
@@ -30,65 +41,74 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
   main: {
     id: "main",
     label: "Main Building",
+    category: "core",
     baseCost: 0,
     costGrowth: 1,
     maxCount: 1
   },
-  farm: {
-    id: "farm",
-    label: "Farm",
-    baseCost: 10,
-    costGrowth: 1.15
-  },
   house: {
     id: "house",
     label: "House",
+    category: "core",
     baseCost: 30,
     costGrowth: 1.18,
     materialCost: { wood: 2 }
   },
+  farm: {
+    id: "farm",
+    label: "Farm",
+    category: "harvest",
+    baseCost: 10,
+    costGrowth: 1.15
+  },
+  lumber_mill: {
+    id: "lumber_mill",
+    label: "Lumber Mill",
+    category: "harvest",
+    baseCost: 50,
+    costGrowth: 1.2,
+    unlock: { resource: "credits", gte: 30 }
+  },
   mine: {
     id: "mine",
     label: "Mine",
+    category: "harvest",
     baseCost: 100,
     costGrowth: 1.2,
     materialCost: { wood: 3 },
     unlock: { resource: "credits", gte: 50 }
   },
-  lumber_mill: {
-    id: "lumber_mill",
-    label: "Lumber Mill",
-    baseCost: 50,
-    costGrowth: 1.2,
-    unlock: { resource: "credits", gte: 30 }
-  },
-  lab: {
-    id: "lab",
-    label: "Research Lab",
-    baseCost: 80,
-    costGrowth: 1.25,
-    materialCost: { wood: 4 },
-    unlock: { resource: "credits", gte: 60 }
-  },
-  granary: {
-    id: "granary",
-    label: "Granary",
-    baseCost: 80,
-    costGrowth: 1.18,
-    materialCost: { wood: 5 },
-    requiresTech: "agriculture"
-  },
   quarry: {
     id: "quarry",
     label: "Quarry",
+    category: "harvest",
     baseCost: 150,
     costGrowth: 1.22,
     materialCost: { wood: 6, stone: 2 },
     requiresTech: "industry"
   },
+  granary: {
+    id: "granary",
+    label: "Granary",
+    category: "harvest",
+    baseCost: 80,
+    costGrowth: 1.18,
+    materialCost: { wood: 5 },
+    requiresTech: "agriculture"
+  },
+  lab: {
+    id: "lab",
+    label: "Research Lab",
+    category: "tech",
+    baseCost: 80,
+    costGrowth: 1.25,
+    materialCost: { wood: 4 },
+    unlock: { resource: "credits", gte: 60 }
+  },
   market: {
     id: "market",
     label: "Market",
+    category: "tech",
     baseCost: 200,
     costGrowth: 1.25,
     materialCost: { wood: 5, stone: 3 },
@@ -97,6 +117,7 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
   factory: {
     id: "factory",
     label: "Factory",
+    category: "tech",
     baseCost: 500,
     costGrowth: 1.3,
     materialCost: { wood: 4, stone: 8, iron: 5 },
