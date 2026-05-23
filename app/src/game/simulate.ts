@@ -308,16 +308,24 @@ export function simulateTick(
       }
     }
     if (def.ops.upkeep) {
-      add(deltas, "credits", -def.ops.upkeep * dtSec);
+      // Upkeep scales with run ratio so an idle / understaffed
+      // building costs less to keep around. Floor at 30% so even
+      // a totally dead building still bleeds something - dropping
+      // to zero would make "drop a factory and never connect it"
+      // free, which is silly.
+      const upkeepMult = Math.max(0.3, runRatio);
+      add(deltas, "credits", -def.ops.upkeep * upkeepMult * dtSec);
     }
   }
 
-  // Upkeep for paused-but-connected buildings: they don't produce
-  // or consume anything else, but the lights stay on (sort of).
+  // Paused buildings cost half upkeep. Pausing is the player's
+  // explicit "shut this down to save money" lever; full upkeep would
+  // make it pointless, zero would make it strictly better than the
+  // intended use case (removing the building).
   for (const key of upkeepOnlyKeys) {
     const id = state.map.placed[key] as BuildingId;
     const upkeep = BUILDING_DEFS[id]?.ops?.upkeep;
-    if (upkeep) add(deltas, "credits", -upkeep * dtSec);
+    if (upkeep) add(deltas, "credits", -upkeep * 0.5 * dtSec);
   }
 
   // Resident consumption: deduct what they actually eat / buy
@@ -370,8 +378,13 @@ export function simulateTick(
     );
   }
 
-  // Rent: every resident pays per second, scaled by happiness.
-  const rent = residents * RENT_PER_RESIDENT * (happiness / 100) * dtSec;
+  // Rent: every resident pays per second, scaled by happiness with
+  // a 30% floor. Even miserable residents still pay something - they
+  // can't easily relocate (you'd see the population leave instead),
+  // and the floor prevents a happiness death spiral from also
+  // zeroing income.
+  const rentMult = Math.max(0.3, happiness / 100);
+  const rent = residents * RENT_PER_RESIDENT * rentMult * dtSec;
   add(deltas, "credits", rent);
 
   // ─── Pass 7: population growth / shrinkage + training ────────────────────

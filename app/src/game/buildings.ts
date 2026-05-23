@@ -126,7 +126,14 @@ export const BUILDING_DEFS: Record<BuildingId, BuildingDef> = {
     baseCost: 0,
     costGrowth: 1,
     maxCount: 1,
-    ops: { upkeep: 0.1 }
+    ops: {
+      // Baseline civic income so an empty / broken city always has
+      // some trickle of credits to recover with. Without this, an
+      // AFK player whose rent drops below upkeep would softlock at
+      // 0 credits with nothing to build their way out.
+      produces: { credits: 0.5 },
+      upkeep: 0.1
+    }
   },
   house: {
     id: "house",
