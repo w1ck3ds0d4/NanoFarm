@@ -37,7 +37,7 @@ export function BuildPalette({ state, selected, onSelect }: Props) {
             <span className="bb-count">
               {def.maxCount !== undefined ? `${owned}/${def.maxCount}` : `x${owned}`}
             </span>
-            <span className="bb-cost">{atCap ? "—" : `${cost} cr`}</span>
+            <span className="bb-cost">{atCap ? "-" : `${cost} cr`}</span>
           </button>
         );
       })}
