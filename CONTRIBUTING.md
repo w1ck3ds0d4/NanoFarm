@@ -4,7 +4,7 @@ NanoFarm is a hobby project with one maintainer. Drive-by PRs are welcome but re
 
 ## Ground rules
 
-- **No em dashes (`—`)** anywhere. Use a hyphen with spaces (` - `), a colon, or rephrase.
+- **No em dashes (`-`)** anywhere. Use a hyphen with spaces (` - `), a colon, or rephrase.
 - **No AI / Claude attribution** in commits, PR titles, PR bodies, or repo files. No `Co-Authored-By: Claude` line, no "Generated with Claude Code" footer.
 - **Commit prefix**: every commit message starts with a `(type)` prefix. Lowercase type in parens, then a lowercase description. Examples: `(feat) add splitter generator`, `(fix) clamp dt to 1s in tick loop`, `(docs) explain offline cap`, `(refactor) extract storage adapter`, `(chore) bump vite to 6.x`, `(test) cover migrate from v1 to v2`.
 - **Small commits**. One logical change per commit. Do not bundle a refactor and a feature.
