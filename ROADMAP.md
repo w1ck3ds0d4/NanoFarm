@@ -1,117 +1,90 @@
-# Roadmap
+# NanoFarm v1 Roadmap
 
-Phased plan from "empty repo" to "playable civilization in a side tab while I code". Each phase is a target, not a deadline. A phase ships when it is fun enough to play for ten minutes without obvious dead ends.
+## What v1 is
 
-## Phase 1 - playable prototype (shipped)
+A tiny pixel-art idle city builder powered by Claude Code tool usage:
+production accelerates from in-editor tool calls logged via a hook bridge.
+Ships in two surfaces (standalone Vite web app + VS Code extension) with a
+shared game core, isometric 32x16 tile rendering, procgen biome map, and
+versioned localStorage saves.
 
-Scope: a 150x150 procgen world, a placement-driven build flow, the Claude Code hook, and a HUD overlay layout. No combat yet, no events, no prestige, no VS Code extension.
+## Current state
 
-Delivered:
+Phase 1 (playable prototype) shipped: 150x150 procgen world (grass / sand /
+water / forest / mountain / mine_deposit), isometric rendering, main building
++ road connectivity, farms / mines with terrain bonuses, material subtypes
+HUD, `PostToolUse` hook draining `~/.nanofarm/tokens.jsonl`, versioned saves,
+extension webview wrapper packaged as VSIX 0.1.0. Event system infrastructure
+is in tree but `EVENT_DEFS` is empty and there are zero tests.
 
-- `app/` and `shared/` scaffolded with Vite 6 + React 19 + TypeScript + PixiJS 8 + pnpm workspaces.
-- 150x150 procgen iso map regenerated from a saved seed. Six biomes (grass, sand, water, forest, mountain, mine_deposit) via value noise.
-- Viewport-culled iso rendering (~250 tiles drawn at a time regardless of map size).
-- Mouse drag-to-pan, scroll-wheel zoom, click-to-select then click-to-place.
-- Main building (max 1, free) + roads (2 credits each) + BFS connectivity from main. Disconnected buildings render dimmed and produce zero.
-- Farm and mine buildings with terrain-aware production: forest -> wood, water -> water + potato boost, mine_deposit -> iron boost, mountain -> stone boost.
-- Material subtypes (wood, iron, stone, water, potatoes) with a toggleable floating pie chart over the canvas showing the breakdown.
-- Claude Code `PostToolUse` hook scripts (bash + powershell) + install guide. In-app drainer that reads `~/.nanofarm/tokens.jsonl` via the File System Access API.
-- HUD overlay layout: header, resource bar, materials pie, stage hint, cam + zoom meta, and a floating BUILD panel all positioned absolute inside the canvas wrap.
-- `localStorage` save / load on a 5-second interval and on tab close, with forward migration for older save shapes.
+## v1 acceptance criteria
 
-Random events are temporarily disabled while the road / connectivity system stabilises.
+- [x] Procgen world + isometric rendering + viewport culling
+- [x] Build flow with road connectivity (BFS, disconnected dimmed)
+- [x] Material subtypes HUD + floating pie chart
+- [x] Save / load with versioned migration
+- [x] Claude Code `PostToolUse` hook + FSA + IndexedDB drainer
+- [x] VS Code extension webview wrapper (VSIX 0.1.0)
+- [x] Standalone Vite web app
+- [ ] Event system content: at least 5 `EVENT_DEFS` (raid, drought, harvest festival, road wash-out, traveling trader)
+- [ ] Test suite (Vitest) covering save migration, BFS connectivity, terrain bonus math
+- [ ] CI gates (lint, tsc, build, package) beyond the SecureCheck workflow
+- [ ] Extension `activationEvents` populated; an in-editor entry point ("Start NanoFarm" in the activity bar)
+- [ ] First VS Code Marketplace listing (preview category if needed)
+- [ ] Manual smoke test on a clean VS Code install + a fresh browser tab
 
-## Phase 2 - research + content + balance
+## Milestones to v1
 
-Scope: introduce the research tier, the lab building, a hand-authored tech tree, and refill the event system with content tuned for the road-based flow.
+### M1. Event system content (S/M)
 
-Deliverables:
+- [ ] Populate `EVENT_DEFS` with 5 events (trigger, duration, effect, art)
+- [ ] Wire event spawning into the main tick loop
+- [ ] Test triggers + effects under Vitest
 
-- **Research resource** + lab building (produces research from materials, gated by tech).
-- **Tech tree** with 10-15 nodes, each costing research and granting a rate multiplier or unlock.
-- **Market building** unlocked via tech: trade resources at fixed rates.
-- **Event content**: 15 hand-authored events including one branching chain (cure cancer / weaponize the research / etc).
-- **Population** mechanic with potato consumption, basic happiness, and growth.
-- **Visual polish**: replace placeholder iso sprites with itch.io asset pack art for grass, forest, mountain, building types, road segments.
-- **Balance pass**: the first half-hour of play should feel like clear progression rather than a flat grind.
+**Acceptance:** during a 10-minute idle session, players see at least one event spawn and resolve.
 
-Exit criteria: a casual half-hour reaches at least one tech node, one new building unlock, and one branching event chain.
+### M2. Test suite (S)
 
-## Phase 3 - nation layer + VS Code extension wrapper
+- [ ] Add Vitest config to `app/` and `shared/`
+- [ ] Unit-test `hydrateMissingFields` migration path
+- [ ] Unit-test BFS road connectivity edge cases (island, donut, single tile)
+- [ ] Unit-test terrain bonus math per building type
 
-Scope: lift the game from "one city" to "one nation". Multiple cities, neighbors, auto-resolve combat, diplomacy. Ship the VS Code extension that loads the same bundle in a webview.
+**Acceptance:** at least 20 unit tests, `pnpm test` exits 0.
 
-Deliverables:
+### M3. CI gates (S)
 
-- **Multiple cities** on a regional map. One player nation, several NPC city-states.
-- **Barracks** building producing military units.
-- **Auto-resolve combat**: stat comparison plus a small luck factor, reported in a "war outcome" dialog. No tactical layer.
-- **Diplomacy events**: trade pacts, demands, alliances.
-- `extension/` scaffolded with the `vscode` API and a `nanofarm.openPanel` command.
-- **Build pipeline**: `pnpm --filter app build` produces `app/dist/`, packaged into the `.vsix` under `media/`.
-- **Storage adapter detection** (`acquireVsCodeApi` vs `localStorage`) and `postMessage` bridge for save / load / clear.
-- A setting to switch between `workspaceState` (per-project) and `globalState` (per-install).
+- [ ] Add `.github/workflows/ci.yml` running `pnpm install --frozen-lockfile`, `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build`, `vsce package`
+- [ ] Upload the packaged VSIX as a workflow artifact
 
-Exit criteria: play in VS Code as a side panel. Close VS Code. Reopen. Save is restored. Start a war with a neighbor. See the outcome dialog. Accept or reject a trade pact.
+**Acceptance:** every PR is gated; main is green; VSIX downloadable per push.
 
-## Phase 4 - planet layer + offline progress
+### M4. Extension discoverability (S)
 
-Scope: build out the full planet view (weather effects, terraforming, late-game event chains). Add offline progress so closing the tab for hours produces a meaningful chunk on return.
+- [ ] Populate `activationEvents` with a startup trigger
+- [ ] Add a status-bar entry and an activity-bar icon
+- [ ] Add a walkthrough contribution for first-install onboarding
 
-Deliverables:
+**Acceptance:** a fresh VS Code with NanoFarm installed discovers the game without typing into the command palette.
 
-- **Influence resource** (nation tier).
-- **Planet view**: weather conditions (drought, flood, eclipse) that modulate building output.
-- **Terraformer** building that slowly shifts long-term conditions.
-- **Offline progress calculator**: on load, replay elapsed time against last-saved rates, capped at 8 hours initially.
-- "While you were away" banner on reopen.
-- Expand event content to about 40 entries with several chains.
+### M5. Marketplace listing + tag (S/M)
 
-Exit criteria: a fresh session after eight hours away shows meaningful (but not silly) progress. Weather visibly changes the rate. A long chain pays off with a notable unlock.
+- [ ] Marketplace listing: icon, screenshots, gif, README adaptation
+- [ ] `vsce publish` (Preview category if Phase 2 isn't shipped)
+- [ ] Tag `v1.0.0` after a clean install smoke test
 
-## Phase 5 - prestige and multi-planet
+**Acceptance:** published listing, install link in README, v1.0.0 tagged.
 
-Scope: long-loop content. Discover space, colonize new planets, prestige by settling.
+## Beyond v1 (post-1.0 polish)
 
-Deliverables:
+- Phase 2: research / lab / tech tree
+- Phase 3: multiple cities, diplomacy, terrain attack/defense
+- Audio + ambient SFX
+- Hook drainer ESM path resolution polish for non-PowerShell environments
+- Cosmetic skins for buildings / characters
 
-- **Spaceport** building producing exploration capacity.
-- **Space discovery view**: scout neighboring planets, pick a colonization target.
-- **Settling a planet is the prestige reset**: spend the current planet's progress, earn starseed tokens, restart locally with permanent multipliers carried.
-- **Prestige upgrade tree**: multipliers on farm output, mine output, research rate, military strength, offline cap.
-- A small set of distinct **planet types** (lush, arid, ice, tidally locked). Each starts you with different conditions.
+## Out of scope for v1
 
-Exit criteria: a fresh prestige run feels meaningfully faster than the first run. Picking a planet type changes the early game enough to feel like a different playthrough.
-
-## Phase 6 - polish, theming, accessibility
-
-Scope: visuals, sound (maybe), readability, and a way to skin the world.
-
-Deliverables:
-
-- A curated set of styled sprite states (idle, working, upgraded, damaged) for every building.
-- Color theme tokens. A default theme plus at least one alternative.
-- Optional VS Code theme integration: pick up `--vscode-*` CSS variables so the panel matches the editor's theme when running as an extension.
-- Accessibility pass: keyboard navigation for build / buy / events, focus rings, readable contrast, reduced-motion mode.
-- Optional audio (event chimes, button feedback) gated behind a sound toggle.
-
-Exit criteria: the game is pleasant to look at for a sustained session and respects the host editor theme when inside VS Code.
-
-## Things explicitly not on the roadmap
-
-- Multiplayer or shared worlds.
-- Cloud sync (export / import JSON is the cross-device story).
-- Mobile-optimized layout (the game runs fine in a mobile browser, but no native app).
-- A marketplace, currency purchases, or ads.
-- Analytics or crash reporting.
-- Tactical combat. Wars stay auto-resolved.
-- Reading code, tool inputs, or tool outputs through the hook. It only counts.
-
-## Open questions
-
-- Whether the VS Code extension should pre-bundle `app/dist/` at publish time or fetch it from a sibling workspace folder during development. Current lean: pre-bundle for shipped builds, sibling-folder symlink during dev.
-- Offline cap default. 8 hours is a starting guess; will revisit after phase 4 playtesting.
-- Whether other AI tools (Copilot, Cursor, Codeium) deserve hook adapters in a later phase, or whether Claude Code stays the only supported one.
-- How strong the early-game "without the hook" experience needs to be. The additive bonus should not feel like the only way to progress, but balance needs playtesting.
-- Whether to add a "time skip" prestige upgrade or rely solely on rate multipliers.
-- Whether to add audio at all in phase 6 or push it indefinitely.
+- Multiplayer
+- Real-time saves to a cloud
+- Mobile distribution (web app works in mobile browsers but is not optimized)
