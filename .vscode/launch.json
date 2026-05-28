@@ -9,7 +9,8 @@
       "runtimeArgs": ["dev"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
-      "skipFiles": ["<node_internals>/**"]
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": { "group": "NanoFarm", "order": 1 }
     }
   ]
 }
