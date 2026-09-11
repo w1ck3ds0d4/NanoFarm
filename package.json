@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "tiny pixel-art idle game powered by claude code usage",
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "packageManager": "pnpm@9.15.0",
   "scripts": {
     "dev": "pnpm --filter @nanofarm/app dev",
