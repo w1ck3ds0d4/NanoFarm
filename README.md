@@ -10,8 +10,6 @@ Built with Vite 6 + React 19 + TypeScript on a PixiJS 8 canvas. Standalone web a
 
 `Status: phase 1 in progress (playable prototype)`
 
----
-
 ## Features
 
 ### World and rendering
@@ -40,8 +38,6 @@ Built with Vite 6 + React 19 + TypeScript on a PixiJS 8 canvas. Standalone web a
 - **No telemetry, no server, no account** - everything lives on the device
 - **Two surfaces** - standalone Vite web app today, VS Code `WebviewPanel` extension planned for phase 3 (same bundle, different save adapter)
 
----
-
 ## Setup
 
 ### Prerequisites
@@ -65,9 +61,7 @@ The dev server boots on `http://localhost:5173`.
 
 See [`hooks/INSTALL.md`](hooks/INSTALL.md). About thirty seconds: drop the script path into `~/.claude/settings.json` under `PostToolUse`, click "connect claude code hook" in the top-right of the game, point the file picker at `~/.nanofarm/tokens.jsonl`.
 
----
-
-## Project Structure
+## Project structure
 
 ```
 NanoFarm/
