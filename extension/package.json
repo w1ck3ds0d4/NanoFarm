@@ -36,10 +36,10 @@
     "reinstall": "pnpm package && code --install-extension nanofarm-extension-0.1.0.vsix --force"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@types/vscode": "^1.85.0",
-    "@vscode/vsce": "^3.2.1",
-    "typescript": "~5.6.3"
+    "@types/node": "^26.6.2",
+    "@types/vscode": "^1.138.0",
+    "@vscode/vsce": "^4.0.0",
+    "typescript": "~7.0.2"
   },
   "dependencies": {
     "@nanofarm/shared": "workspace:*"
