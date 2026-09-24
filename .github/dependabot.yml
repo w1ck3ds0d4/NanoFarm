@@ -3,22 +3,43 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    commit-message:
+      prefix: "chore"
+    groups:
+      github-actions-patch:
+        update-types: ["patch"]
+      github-actions-updates:
+        update-types: ["minor", "major"]
     open-pull-requests-limit: 5
     labels:
       - "ci"
-  # NOTE: enable these once the corresponding manifests exist.
-  # - package-ecosystem: "npm"
-  #   directory: "/"
-  #   schedule:
-  #     interval: "weekly"
-  #   open-pull-requests-limit: 10
-  #   labels:
-  #     - "dependencies"
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore"
+    groups:
+      npm-patch:
+        update-types: ["patch"]
+      npm-updates:
+        update-types: ["minor", "major"]
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+  # NOTE: enable once src-tauri/Cargo.toml exists.
   # - package-ecosystem: "cargo"
   #   directory: "/src-tauri"
   #   schedule:
-  #     interval: "weekly"
+  #     interval: "monthly"
+  #   commit-message:
+  #     prefix: "chore"
+  #   groups:
+  #     cargo-patch:
+  #       update-types: ["patch"]
+  #     cargo-updates:
+  #       update-types: ["minor", "major"]
   #   open-pull-requests-limit: 5
   #   labels:
   #     - "dependencies"
